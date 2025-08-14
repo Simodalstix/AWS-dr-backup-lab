@@ -242,7 +242,7 @@ class ObservabilityStack(Stack):
                     namespace="AWS/RDS",
                     metric_name="CPUUtilization",
                     dimensions_map={
-                        "DBInstanceIdentifier": self._primary_database.instance_identifier
+                        "DBInstanceIdentifier": self._primary_database.primary_instance.instance_identifier
                     },
                     statistic="Average",
                     period=Duration.minutes(1),
@@ -258,7 +258,7 @@ class ObservabilityStack(Stack):
                     namespace="AWS/RDS",
                     metric_name="DatabaseConnections",
                     dimensions_map={
-                        "DBInstanceIdentifier": self._primary_database.instance_identifier
+                        "DBInstanceIdentifier": self._primary_database.primary_instance.instance_identifier
                     },
                     statistic="Average",
                     period=Duration.minutes(1),
@@ -437,7 +437,7 @@ class ObservabilityStack(Stack):
                 namespace="AWS/RDS",
                 metric_name="CPUUtilization",
                 dimensions_map={
-                    "DBInstanceIdentifier": self._primary_database.instance_identifier
+                    "DBInstanceIdentifier": self._primary_database.primary_instance.instance_identifier
                 },
                 statistic="Average",
                 period=Duration.minutes(5),

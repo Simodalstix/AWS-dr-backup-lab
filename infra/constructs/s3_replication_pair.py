@@ -39,8 +39,6 @@ class S3ReplicationPair(Construct):
         destination_kms_key: Optional[kms.IKey] = None,
         lifecycle_rules: Optional[List[s3.LifecycleRule]] = None,
         replication_prefix: str = "",
-        storage_class: s3.StorageClass = s3.StorageClass.STANDARD,
-        destination_storage_class: s3.StorageClass = s3.StorageClass.STANDARD_IA,
         enable_access_logging: bool = True,
         **kwargs,
     ) -> None:
@@ -56,8 +54,6 @@ class S3ReplicationPair(Construct):
         self._destination_kms_key = destination_kms_key
         self._lifecycle_rules = lifecycle_rules or self._default_lifecycle_rules()
         self._replication_prefix = replication_prefix
-        self._storage_class = storage_class
-        self._destination_storage_class = destination_storage_class
         self._enable_access_logging = enable_access_logging
 
         # Create replication role
@@ -225,7 +221,6 @@ class S3ReplicationPair(Construct):
                     "Prefix": self._replication_prefix,
                     "Destination": {
                         "Bucket": f"arn:aws:s3:::{self._bucket_name_prefix}-{self._destination_region}",
-                        "StorageClass": self._destination_storage_class.value,
                         "EncryptionConfiguration": (
                             {
                                 "ReplicaKmsKeyID": (

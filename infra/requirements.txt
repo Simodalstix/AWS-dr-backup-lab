@@ -1,31 +1,31 @@
 # AWS CDK Core
-aws-cdk-lib==2.100.0
-constructs>=10.0.0,<11.0.0
+aws-cdk-lib
+constructs
 
 # AWS CDK Alpha modules (for experimental features)
-aws-cdk.aws-lambda-python-alpha==2.100.0a0
-aws-cdk.aws-apigatewayv2-alpha==2.100.0a0
-aws-cdk.aws-apigatewayv2-integrations-alpha==2.100.0a0
+aws-cdk.aws-lambda-python-alpha
+aws-cdk.aws-apigatewayv2-alpha
+aws-cdk.aws-apigatewayv2-integrations-alpha
 
 # Python dependencies
-boto3>=1.26.0
-botocore>=1.29.0
+boto3
+botocore
 
 # Testing dependencies
-pytest>=7.0.0
-pytest-cov>=4.0.0
-moto>=4.0.0
+pytest
+pytest-cov
+moto
 
 # Development dependencies
-black>=22.0.0
-flake8>=5.0.0
-mypy>=1.0.0
-isort>=5.0.0
+black
+flake8
+mypy
+isort
 
 # Documentation
-sphinx>=5.0.0
-sphinx-rtd-theme>=1.0.0
+sphinx
+sphinx-rtd-theme
 
 # Utilities
-python-dotenv>=1.0.0
-pyyaml>=6.0.0
+python-dotenv
+pyyaml

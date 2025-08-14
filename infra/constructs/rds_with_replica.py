@@ -48,7 +48,7 @@ class RDSWithReplica(Construct):
         replica_region: Optional[str] = None,
         replica_instance_class: Optional[ec2.InstanceType] = None,
         enable_performance_insights: bool = True,
-        performance_insights_retention: rds.PerformanceInsightsRetention = rds.PerformanceInsightsRetention.DEFAULT,
+        performance_insights_retention: rds.PerformanceInsightRetention = rds.PerformanceInsightRetention.DEFAULT,
         monitoring_interval: Duration = Duration.seconds(60),
         enable_logging: bool = True,
         log_types: Optional[List[str]] = None,

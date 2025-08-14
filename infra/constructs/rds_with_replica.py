@@ -211,7 +211,6 @@ class RDSWithReplica(Construct):
             delete_automated_backups=True,
             deletion_protection=False,
             enable_performance_insights=self._enable_performance_insights,
-            performance_insights_encryption_key=self._kms_key,
             monitoring_interval=self._monitoring_interval,
             monitoring_role=self._monitoring_role,
             cloudwatch_logs_exports=self._log_types if self._enable_logging else None,

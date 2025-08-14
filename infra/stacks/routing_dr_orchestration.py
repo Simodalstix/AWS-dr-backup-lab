@@ -125,15 +125,13 @@ class RoutingAndDROrchestrationStack(Stack):
         self._primary_health_check = route53.HealthCheck(
             self,
             "PrimaryHealthCheck",
-            health_check_config=route53.HealthCheckConfig(
-                type=route53.HealthCheckType.HTTP,
-                resource_path=self._config.get("health_check_path", "/healthz"),
-                fully_qualified_domain_name=self._primary_alb.load_balancer_dns_name,
-                port=80,
-                request_interval=route53.HealthCheckInterval.SECONDS_30,
-                failure_threshold=3,
-                measure_latency=True,
-            ),
+            type=route53.HealthCheckType.HTTP,
+            resource_path=self._config.get("health_check_path", "/healthz"),
+            fqdn=self._primary_alb.load_balancer_dns_name,
+            port=80,
+            request_interval=Duration.seconds(30),
+            failure_threshold=3,
+            measure_latency=True,
         )
 
         # Create primary failover record

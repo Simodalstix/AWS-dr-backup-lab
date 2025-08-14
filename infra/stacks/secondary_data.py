@@ -177,7 +177,7 @@ class SecondaryDataStack(Stack):
                     enabled=True,
                     transitions=[
                         s3.Transition(
-                            storage_class=s3.StorageClass.STANDARD_IA,
+                            storage_class=s3.StorageClass.INFREQUENT_ACCESS,
                             transition_after=Duration.days(
                                 self._config.get("s3_lifecycle_ia_days", 30)
                             ),
@@ -203,7 +203,6 @@ class SecondaryDataStack(Stack):
                 ),
             ],
             public_read_access=False,
-            public_write_access=False,
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             enforce_ssl=True,
         )
@@ -229,14 +228,13 @@ class SecondaryDataStack(Stack):
                     enabled=True,
                     transitions=[
                         s3.Transition(
-                            storage_class=s3.StorageClass.STANDARD_IA,
+                            storage_class=s3.StorageClass.INFREQUENT_ACCESS,
                             transition_after=Duration.days(7),
                         )
                     ],
                 ),
             ],
             public_read_access=False,
-            public_write_access=False,
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             enforce_ssl=True,
         )

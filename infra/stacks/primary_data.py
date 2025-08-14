@@ -144,18 +144,6 @@ class PrimaryDataStack(Stack):
             destination_kms_key=self._kms_key.key,  # Multi-region key works in both regions
             lifecycle_rules=[
                 s3.LifecycleRule(
-                    id="TransitionToIA",
-                    enabled=True,
-                    transitions=[
-                        s3.Transition(
-                            storage_class=s3.StorageClass.STANDARD_IA,
-                            transition_after=Duration.days(
-                                self._config.get("s3_lifecycle_ia_days", 30)
-                            ),
-                        )
-                    ],
-                ),
-                s3.LifecycleRule(
                     id="TransitionToGlacier",
                     enabled=True,
                     transitions=[
@@ -192,19 +180,8 @@ class PrimaryDataStack(Stack):
                         self._config.get("cloudwatch_log_retention_days", 14) * 2
                     ),
                 ),
-                s3.LifecycleRule(
-                    id="TransitionLogsToIA",
-                    enabled=True,
-                    transitions=[
-                        s3.Transition(
-                            storage_class=s3.StorageClass.STANDARD_IA,
-                            transition_after=Duration.days(7),
-                        )
-                    ],
-                ),
             ],
             public_read_access=False,
-            public_write_access=False,
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             enforce_ssl=True,
         )
@@ -225,7 +202,6 @@ class PrimaryDataStack(Stack):
                 )
             ],
             public_read_access=False,
-            public_write_access=False,
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             enforce_ssl=True,
         )

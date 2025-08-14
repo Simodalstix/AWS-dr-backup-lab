@@ -9,6 +9,7 @@ from aws_cdk import (
     aws_cloudwatch as cloudwatch,
     aws_cloudwatch_actions as cloudwatch_actions,
     aws_sns as sns,
+    aws_sns_subscriptions as subs,
     aws_logs as logs,
     aws_elasticloadbalancingv2 as elbv2,
     aws_ecs as ecs,
@@ -87,7 +88,7 @@ class ObservabilityStack(Stack):
         alarm_email = self._config.get("alarm_email")
         if alarm_email:
             self._notification_topic.add_subscription(
-                sns.Subscription.email(alarm_email)
+                subs.EmailSubscription(alarm_email)
             )
 
     def _create_dashboard(self) -> None:

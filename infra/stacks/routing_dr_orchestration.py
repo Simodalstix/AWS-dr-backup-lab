@@ -136,8 +136,8 @@ class RoutingAndDROrchestrationStack(Stack):
             ),
         )
 
-        # Create failover record
-        self._failover_record = route53.FailoverRoutingRecord(
+        # Create primary failover record
+        self._failover_record = route53.ARecord(
             self,
             "FailoverRecord",
             zone=self._hosted_zone,
@@ -145,12 +145,13 @@ class RoutingAndDROrchestrationStack(Stack):
             target=route53.RecordTarget.from_alias(
                 targets.LoadBalancerTarget(self._primary_alb)
             ),
+            set_identifier="primary",
             failover=route53.Failover.PRIMARY,
             health_check=self._primary_health_check,
         )
 
         # Create secondary failover record
-        self._secondary_failover_record = route53.FailoverRoutingRecord(
+        self._secondary_failover_record = route53.ARecord(
             self,
             "SecondaryFailoverRecord",
             zone=self._hosted_zone,
@@ -158,6 +159,7 @@ class RoutingAndDROrchestrationStack(Stack):
             target=route53.RecordTarget.from_alias(
                 targets.LoadBalancerTarget(self._secondary_alb)
             ),
+            set_identifier="secondary",
             failover=route53.Failover.SECONDARY,
         )
 

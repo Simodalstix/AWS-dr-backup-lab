@@ -75,8 +75,8 @@ class PrimaryAppStack(Stack):
             container_insights=True,
         )
 
-        # Add capacity providers for cost optimization
-        self._cluster.add_capacity_providers("FARGATE", "FARGATE_SPOT")
+        # Capacity providers are automatically enabled with enable_fargate_capacity_providers=True
+        # This includes both FARGATE and FARGATE_SPOT capacity providers
 
     def _create_ecs_service(self) -> None:
         """Create the ECS service with Application Load Balancer."""
@@ -135,9 +135,7 @@ class PrimaryAppStack(Stack):
             environment_variables=environment_variables,
             secrets=secrets,
             enable_logging=True,
-            log_retention=logs.RetentionDays(
-                self._config.get("cloudwatch_log_retention_days", 14)
-            ),
+            log_retention=logs.RetentionDays.TWO_WEEKS,
         )
 
         # Grant permissions to access S3 bucket

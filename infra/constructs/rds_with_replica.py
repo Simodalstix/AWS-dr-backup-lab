@@ -47,8 +47,7 @@ class RDSWithReplica(Construct):
         kms_key: Optional[kms.IKey] = None,
         replica_region: Optional[str] = None,
         replica_instance_class: Optional[ec2.InstanceType] = None,
-        enable_performance_insights: bool = True,
-        performance_insights_retention: rds.PerformanceInsightRetention = rds.PerformanceInsightRetention.DEFAULT,
+        enable_performance_insights: bool = False,
         monitoring_interval: Duration = Duration.seconds(60),
         enable_logging: bool = True,
         log_types: Optional[List[str]] = None,
@@ -68,7 +67,6 @@ class RDSWithReplica(Construct):
         self._replica_region = replica_region
         self._replica_instance_class = replica_instance_class or instance_class
         self._enable_performance_insights = enable_performance_insights
-        self._performance_insights_retention = performance_insights_retention
         self._monitoring_interval = monitoring_interval
         self._enable_logging = enable_logging
         self._log_types = log_types or ["postgresql"]
@@ -202,6 +200,7 @@ class RDSWithReplica(Construct):
             vpc=self._vpc,
             subnet_group=self._subnet_group,
             security_groups=[self._security_group],
+            parameter_group=self._parameter_group,
             credentials=self._credentials,
             database_name=self._database_name,
             allocated_storage=self._allocated_storage,
@@ -209,25 +208,18 @@ class RDSWithReplica(Construct):
             storage_encrypted=True,
             storage_encryption_key=self._kms_key,
             backup_retention=self._backup_retention,
-            backup_window="03:00-04:00",  # UTC
-            maintenance_window="sun:04:00-sun:05:00",  # UTC
-            preferred_backup_window="03:00-04:00",
-            preferred_maintenance_window="sun:04:00-sun:05:00",
-            parameter_group=self._parameter_group,
+            delete_automated_backups=True,
+            deletion_protection=False,
+            enable_performance_insights=self._enable_performance_insights,
+            performance_insights_encryption_key=self._kms_key,
             monitoring_interval=self._monitoring_interval,
             monitoring_role=self._monitoring_role,
-            enable_performance_insights=self._enable_performance_insights,
-            performance_insights_retention=self._performance_insights_retention,
-            performance_insights_encryption_key=self._kms_key,
             cloudwatch_logs_exports=self._log_types if self._enable_logging else None,
-            cloudwatch_logs_retention=logs.RetentionDays.TWO_WEEKS,
-            cloudwatch_logs_retention_role=self._create_logs_role(),
-            deletion_protection=True,
-            delete_automated_backups=False,
-            removal_policy=RemovalPolicy.SNAPSHOT,
-            copy_tags_to_snapshot=True,
             auto_minor_version_upgrade=True,
             allow_major_version_upgrade=False,
+            multi_az=False,  # Single AZ for cost optimization
+            publicly_accessible=False,
+            removal_policy=RemovalPolicy.SNAPSHOT,
         )
 
     def _create_logs_role(self) -> iam.Role:

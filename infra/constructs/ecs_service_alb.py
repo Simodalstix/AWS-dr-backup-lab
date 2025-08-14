@@ -247,7 +247,6 @@ class ECSServiceALB(Construct):
                 subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS
             ),
             assign_public_ip=False,
-            enable_logging=self._enable_logging,
             health_check_grace_period=Duration.seconds(60),
             min_healthy_percent=50,
             max_healthy_percent=200,

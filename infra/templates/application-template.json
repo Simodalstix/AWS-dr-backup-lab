@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "DR Lab Recovery Application Infrastructure",
+  "Description": "DR Lab Recovery Application Infrastructure - Enterprise Ready with HTTPS",
   "Parameters": {
     "VpcId": {
       "Type": "String",
@@ -8,19 +8,19 @@
     },
     "PublicSubnet1Id": {
       "Type": "String",
-      "Description": "Public Subnet 1 ID"
+      "Description": "Public Subnet 1 ID for ALB"
     },
     "PublicSubnet2Id": {
       "Type": "String",
-      "Description": "Public Subnet 2 ID"
+      "Description": "Public Subnet 2 ID for ALB"
     },
     "PrivateSubnet1Id": {
       "Type": "String",
-      "Description": "Private Subnet 1 ID"
+      "Description": "Private Subnet 1 ID for ECS tasks"
     },
     "PrivateSubnet2Id": {
       "Type": "String",
-      "Description": "Private Subnet 2 ID"
+      "Description": "Private Subnet 2 ID for ECS tasks"
     },
     "ContainerImage": {
       "Type": "String",
@@ -49,6 +49,21 @@
     "S3BucketName": {
       "Type": "String",
       "Description": "S3 bucket name for application data"
+    },
+    "CertificateArn": {
+      "Type": "String",
+      "Description": "ACM Certificate ARN for HTTPS",
+      "Default": ""
+    },
+    "DomainName": {
+      "Type": "String",
+      "Description": "Domain name for the application",
+      "Default": "app.example.com"
+    }
+  },
+  "Conditions": {
+    "HasCertificate": {
+      "Fn::Not": [{ "Fn::Equals": [{ "Ref": "CertificateArn" }, ""] }]
     }
   },
   "Resources": {
@@ -71,6 +86,150 @@
         ],
         "Tags": [
           { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" },
+          { "Key": "Pattern", "Value": "BackupAndRestore" }
+        ]
+      }
+    },
+    "TaskExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+        ],
+        "Tags": [
+          { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" }
+        ]
+      }
+    },
+    "TaskRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "S3Access",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject",
+                    "s3:PutObject",
+                    "s3:DeleteObject",
+                    "s3:ListBucket"
+                  ],
+                  "Resource": [
+                    { "Fn::Sub": "arn:aws:s3:::${S3BucketName}" },
+                    { "Fn::Sub": "arn:aws:s3:::${S3BucketName}/*" }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" }
+        ]
+      }
+    },
+    "LogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/ecs/dr-lab-recovery-app",
+        "RetentionInDays": 14
+      }
+    },
+    "TaskDefinition": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "Family": "dr-lab-recovery-app",
+        "NetworkMode": "awsvpc",
+        "RequiresCompatibilities": ["FARGATE"],
+        "Cpu": { "Ref": "TaskCpu" },
+        "Memory": { "Ref": "TaskMemory" },
+        "ExecutionRoleArn": { "Ref": "TaskExecutionRole" },
+        "TaskRoleArn": { "Ref": "TaskRole" },
+        "ContainerDefinitions": [
+          {
+            "Name": "app",
+            "Image": { "Ref": "ContainerImage" },
+            "PortMappings": [
+              {
+                "ContainerPort": { "Ref": "ContainerPort" },
+                "Protocol": "tcp"
+              }
+            ],
+            "Environment": [
+              {
+                "Name": "DATABASE_HOST",
+                "Value": { "Ref": "DatabaseEndpoint" }
+              },
+              {
+                "Name": "DATABASE_PORT",
+                "Value": "5433"
+              },
+              {
+                "Name": "S3_BUCKET",
+                "Value": { "Ref": "S3BucketName" }
+              },
+              {
+                "Name": "AWS_DEFAULT_REGION",
+                "Value": { "Ref": "AWS::Region" }
+              },
+              {
+                "Name": "ENVIRONMENT",
+                "Value": "recovery"
+              }
+            ],
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": { "Ref": "LogGroup" },
+                "awslogs-region": { "Ref": "AWS::Region" },
+                "awslogs-stream-prefix": "ecs"
+              }
+            },
+            "HealthCheck": {
+              "Command": [
+                "CMD-SHELL",
+                "curl -f http://localhost/healthz || exit 1"
+              ],
+              "Interval": 30,
+              "Timeout": 5,
+              "Retries": 3,
+              "StartPeriod": 60
+            }
+          }
+        ],
+        "Tags": [
+          { "Key": "Project", "Value": "DR-Lab" },
           { "Key": "Environment", "Value": "Recovery" }
         ]
       }
@@ -78,25 +237,28 @@
     "ALBSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "GroupDescription": "Security group for ALB",
+        "GroupDescription": "Security group for ALB with HTTPS support",
         "VpcId": { "Ref": "VpcId" },
         "SecurityGroupIngress": [
           {
             "IpProtocol": "tcp",
             "FromPort": 80,
             "ToPort": 80,
-            "CidrIp": "0.0.0.0/0"
+            "CidrIp": "0.0.0.0/0",
+            "Description": "HTTP traffic (will redirect to HTTPS)"
           },
           {
             "IpProtocol": "tcp",
             "FromPort": 443,
             "ToPort": 443,
-            "CidrIp": "0.0.0.0/0"
+            "CidrIp": "0.0.0.0/0",
+            "Description": "HTTPS traffic"
           }
         ],
         "Tags": [
           { "Key": "Name", "Value": "DR-Lab-Recovery-ALB-SG" },
-          { "Key": "Project", "Value": "DR-Lab" }
+          { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" }
         ]
       }
     },
@@ -110,12 +272,14 @@
             "IpProtocol": "tcp",
             "FromPort": { "Ref": "ContainerPort" },
             "ToPort": { "Ref": "ContainerPort" },
-            "SourceSecurityGroupId": { "Ref": "ALBSecurityGroup" }
+            "SourceSecurityGroupId": { "Ref": "ALBSecurityGroup" },
+            "Description": "Traffic from ALB"
           }
         ],
         "Tags": [
           { "Key": "Name", "Value": "DR-Lab-Recovery-ECS-SG" },
-          { "Key": "Project", "Value": "DR-Lab" }
+          { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" }
         ]
       }
     },
@@ -127,9 +291,24 @@
         "Type": "application",
         "Subnets": [{ "Ref": "PublicSubnet1Id" }, { "Ref": "PublicSubnet2Id" }],
         "SecurityGroups": [{ "Ref": "ALBSecurityGroup" }],
+        "LoadBalancerAttributes": [
+          {
+            "Key": "idle_timeout.timeout_seconds",
+            "Value": "60"
+          },
+          {
+            "Key": "routing.http2.enabled",
+            "Value": "true"
+          },
+          {
+            "Key": "access_logs.s3.enabled",
+            "Value": "false"
+          }
+        ],
         "Tags": [
           { "Key": "Project", "Value": "DR-Lab" },
-          { "Key": "Environment", "Value": "Recovery" }
+          { "Key": "Environment", "Value": "Recovery" },
+          { "Key": "Pattern", "Value": "BackupAndRestore" }
         ]
       }
     },
@@ -147,14 +326,52 @@
         "HealthCheckTimeoutSeconds": 5,
         "HealthyThresholdCount": 2,
         "UnhealthyThresholdCount": 3,
+        "TargetGroupAttributes": [
+          {
+            "Key": "deregistration_delay.timeout_seconds",
+            "Value": "30"
+          },
+          {
+            "Key": "stickiness.enabled",
+            "Value": "false"
+          }
+        ],
         "Tags": [
           { "Key": "Project", "Value": "DR-Lab" },
           { "Key": "Environment", "Value": "Recovery" }
         ]
       }
     },
-    "Listener": {
+    "HTTPListener": {
       "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "DefaultActions": [
+          {
+            "Fn::If": [
+              "HasCertificate",
+              {
+                "Type": "redirect",
+                "RedirectConfig": {
+                  "Protocol": "HTTPS",
+                  "Port": "443",
+                  "StatusCode": "HTTP_301"
+                }
+              },
+              {
+                "Type": "forward",
+                "TargetGroupArn": { "Ref": "TargetGroup" }
+              }
+            ]
+          }
+        ],
+        "LoadBalancerArn": { "Ref": "ApplicationLoadBalancer" },
+        "Port": 80,
+        "Protocol": "HTTP"
+      }
+    },
+    "HTTPSListener": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Condition": "HasCertificate",
       "Properties": {
         "DefaultActions": [
           {
@@ -163,8 +380,52 @@
           }
         ],
         "LoadBalancerArn": { "Ref": "ApplicationLoadBalancer" },
-        "Port": 80,
-        "Protocol": "HTTP"
+        "Port": 443,
+        "Protocol": "HTTPS",
+        "Certificates": [
+          {
+            "CertificateArn": { "Ref": "CertificateArn" }
+          }
+        ],
+        "SslPolicy": "ELBSecurityPolicy-TLS-1-2-2017-01"
+      }
+    },
+    "ECSService": {
+      "Type": "AWS::ECS::Service",
+      "DependsOn": ["HTTPListener"],
+      "Properties": {
+        "ServiceName": "dr-lab-recovery-service",
+        "Cluster": { "Ref": "ECSCluster" },
+        "TaskDefinition": { "Ref": "TaskDefinition" },
+        "DesiredCount": 2,
+        "LaunchType": "FARGATE",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "SecurityGroups": [{ "Ref": "ECSSecurityGroup" }],
+            "Subnets": [
+              { "Ref": "PrivateSubnet1Id" },
+              { "Ref": "PrivateSubnet2Id" }
+            ],
+            "AssignPublicIp": "DISABLED"
+          }
+        },
+        "LoadBalancers": [
+          {
+            "ContainerName": "app",
+            "ContainerPort": { "Ref": "ContainerPort" },
+            "TargetGroupArn": { "Ref": "TargetGroup" }
+          }
+        ],
+        "HealthCheckGracePeriodSeconds": 60,
+        "DeploymentConfiguration": {
+          "MaximumPercent": 200,
+          "MinimumHealthyPercent": 50
+        },
+        "Tags": [
+          { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" },
+          { "Key": "Pattern", "Value": "BackupAndRestore" }
+        ]
       }
     }
   },
@@ -185,9 +446,25 @@
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-TargetGroupArn" } }
     },
     "ApplicationURL": {
-      "Description": "Application URL",
-      "Value": { "Fn::Sub": "http://${ApplicationLoadBalancer.DNSName}" },
+      "Description": "Application URL (HTTPS if certificate provided, HTTP otherwise)",
+      "Value": {
+        "Fn::If": [
+          "HasCertificate",
+          { "Fn::Sub": "https://${DomainName}" },
+          { "Fn::Sub": "http://${ApplicationLoadBalancer.DNSName}" }
+        ]
+      },
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-ApplicationURL" } }
+    },
+    "ServiceArn": {
+      "Description": "ECS Service ARN",
+      "Value": { "Ref": "ECSService" },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-ServiceArn" } }
+    },
+    "TaskDefinitionArn": {
+      "Description": "ECS Task Definition ARN",
+      "Value": { "Ref": "TaskDefinition" },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-TaskDefinitionArn" } }
     }
   }
 }

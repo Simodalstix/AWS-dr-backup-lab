@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "DR Lab Recovery Network Infrastructure",
+  "Description": "DR Lab Recovery Network Infrastructure - Enterprise Ready",
   "Parameters": {
     "VpcCidr": {
       "Type": "String",
@@ -10,7 +10,20 @@
     "AvailabilityZones": {
       "Type": "Number",
       "Default": 2,
-      "Description": "Number of availability zones"
+      "Description": "Number of availability zones",
+      "MinValue": 2,
+      "MaxValue": 3
+    },
+    "EnableNatGateway": {
+      "Type": "String",
+      "Default": "true",
+      "AllowedValues": ["true", "false"],
+      "Description": "Enable NAT Gateway for private subnets (required for ECS)"
+    }
+  },
+  "Conditions": {
+    "CreateNatGateway": {
+      "Fn::Equals": [{ "Ref": "EnableNatGateway" }, "true"]
     }
   },
   "Resources": {
@@ -23,7 +36,8 @@
         "Tags": [
           { "Key": "Name", "Value": "DR-Lab-Recovery-VPC" },
           { "Key": "Project", "Value": "DR-Lab" },
-          { "Key": "Environment", "Value": "Recovery" }
+          { "Key": "Environment", "Value": "Recovery" },
+          { "Key": "Pattern", "Value": "BackupAndRestore" }
         ]
       }
     },
@@ -32,7 +46,8 @@
       "Properties": {
         "Tags": [
           { "Key": "Name", "Value": "DR-Lab-Recovery-IGW" },
-          { "Key": "Project", "Value": "DR-Lab" }
+          { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" }
         ]
       }
     },
@@ -54,7 +69,9 @@
         "MapPublicIpOnLaunch": true,
         "Tags": [
           { "Key": "Name", "Value": "DR-Lab-Recovery-Public-1" },
-          { "Key": "Project", "Value": "DR-Lab" }
+          { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" },
+          { "Key": "Type", "Value": "Public" }
         ]
       }
     },
@@ -69,7 +86,9 @@
         "MapPublicIpOnLaunch": true,
         "Tags": [
           { "Key": "Name", "Value": "DR-Lab-Recovery-Public-2" },
-          { "Key": "Project", "Value": "DR-Lab" }
+          { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" },
+          { "Key": "Type", "Value": "Public" }
         ]
       }
     },
@@ -83,7 +102,9 @@
         "AvailabilityZone": { "Fn::Select": [0, { "Fn::GetAZs": "" }] },
         "Tags": [
           { "Key": "Name", "Value": "DR-Lab-Recovery-Private-1" },
-          { "Key": "Project", "Value": "DR-Lab" }
+          { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" },
+          { "Key": "Type", "Value": "Private" }
         ]
       }
     },
@@ -97,6 +118,56 @@
         "AvailabilityZone": { "Fn::Select": [1, { "Fn::GetAZs": "" }] },
         "Tags": [
           { "Key": "Name", "Value": "DR-Lab-Recovery-Private-2" },
+          { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" },
+          { "Key": "Type", "Value": "Private" }
+        ]
+      }
+    },
+    "NatGateway1EIP": {
+      "Type": "AWS::EC2::EIP",
+      "Condition": "CreateNatGateway",
+      "DependsOn": "AttachGateway",
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [
+          { "Key": "Name", "Value": "DR-Lab-Recovery-NAT-EIP-1" },
+          { "Key": "Project", "Value": "DR-Lab" }
+        ]
+      }
+    },
+    "NatGateway2EIP": {
+      "Type": "AWS::EC2::EIP",
+      "Condition": "CreateNatGateway",
+      "DependsOn": "AttachGateway",
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [
+          { "Key": "Name", "Value": "DR-Lab-Recovery-NAT-EIP-2" },
+          { "Key": "Project", "Value": "DR-Lab" }
+        ]
+      }
+    },
+    "NatGateway1": {
+      "Type": "AWS::EC2::NatGateway",
+      "Condition": "CreateNatGateway",
+      "Properties": {
+        "AllocationId": { "Fn::GetAtt": ["NatGateway1EIP", "AllocationId"] },
+        "SubnetId": { "Ref": "PublicSubnet1" },
+        "Tags": [
+          { "Key": "Name", "Value": "DR-Lab-Recovery-NAT-1" },
+          { "Key": "Project", "Value": "DR-Lab" }
+        ]
+      }
+    },
+    "NatGateway2": {
+      "Type": "AWS::EC2::NatGateway",
+      "Condition": "CreateNatGateway",
+      "Properties": {
+        "AllocationId": { "Fn::GetAtt": ["NatGateway2EIP", "AllocationId"] },
+        "SubnetId": { "Ref": "PublicSubnet2" },
+        "Tags": [
+          { "Key": "Name", "Value": "DR-Lab-Recovery-NAT-2" },
           { "Key": "Project", "Value": "DR-Lab" }
         ]
       }
@@ -107,7 +178,30 @@
         "VpcId": { "Ref": "VPC" },
         "Tags": [
           { "Key": "Name", "Value": "DR-Lab-Recovery-Public-RT" },
-          { "Key": "Project", "Value": "DR-Lab" }
+          { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" }
+        ]
+      }
+    },
+    "PrivateRouteTable1": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "Tags": [
+          { "Key": "Name", "Value": "DR-Lab-Recovery-Private-RT-1" },
+          { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" }
+        ]
+      }
+    },
+    "PrivateRouteTable2": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "Tags": [
+          { "Key": "Name", "Value": "DR-Lab-Recovery-Private-RT-2" },
+          { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" }
         ]
       }
     },
@@ -118,6 +212,24 @@
         "RouteTableId": { "Ref": "PublicRouteTable" },
         "DestinationCidrBlock": "0.0.0.0/0",
         "GatewayId": { "Ref": "InternetGateway" }
+      }
+    },
+    "PrivateRoute1": {
+      "Type": "AWS::EC2::Route",
+      "Condition": "CreateNatGateway",
+      "Properties": {
+        "RouteTableId": { "Ref": "PrivateRouteTable1" },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": { "Ref": "NatGateway1" }
+      }
+    },
+    "PrivateRoute2": {
+      "Type": "AWS::EC2::Route",
+      "Condition": "CreateNatGateway",
+      "Properties": {
+        "RouteTableId": { "Ref": "PrivateRouteTable2" },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": { "Ref": "NatGateway2" }
       }
     },
     "PublicSubnetRouteTableAssociation1": {
@@ -133,6 +245,80 @@
         "SubnetId": { "Ref": "PublicSubnet2" },
         "RouteTableId": { "Ref": "PublicRouteTable" }
       }
+    },
+    "PrivateSubnetRouteTableAssociation1": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "PrivateSubnet1" },
+        "RouteTableId": { "Ref": "PrivateRouteTable1" }
+      }
+    },
+    "PrivateSubnetRouteTableAssociation2": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "PrivateSubnet2" },
+        "RouteTableId": { "Ref": "PrivateRouteTable2" }
+      }
+    },
+    "VPCFlowLogRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "vpc-flow-logs.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "flowlogsDeliveryRolePolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents",
+                    "logs:DescribeLogGroups",
+                    "logs:DescribeLogStreams"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "VPCFlowLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/vpc/flowlogs",
+        "RetentionInDays": 7
+      }
+    },
+    "VPCFlowLog": {
+      "Type": "AWS::EC2::FlowLog",
+      "Properties": {
+        "ResourceType": "VPC",
+        "ResourceId": { "Ref": "VPC" },
+        "TrafficType": "ALL",
+        "LogDestinationType": "cloud-watch-logs",
+        "LogGroupName": { "Ref": "VPCFlowLogGroup" },
+        "DeliverLogsPermissionArn": { "Fn::GetAtt": ["VPCFlowLogRole", "Arn"] },
+        "Tags": [
+          { "Key": "Name", "Value": "DR-Lab-Recovery-VPC-FlowLog" },
+          { "Key": "Project", "Value": "DR-Lab" }
+        ]
+      }
     }
   },
   "Outputs": {
@@ -140,6 +326,11 @@
       "Description": "VPC ID",
       "Value": { "Ref": "VPC" },
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-VpcId" } }
+    },
+    "VpcCidr": {
+      "Description": "VPC CIDR Block",
+      "Value": { "Ref": "VpcCidr" },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-VpcCidr" } }
     },
     "PublicSubnet1Id": {
       "Description": "Public Subnet 1 ID",
@@ -160,6 +351,25 @@
       "Description": "Private Subnet 2 ID",
       "Value": { "Ref": "PrivateSubnet2" },
       "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-PrivateSubnet2Id" } }
+    },
+    "InternetGatewayId": {
+      "Description": "Internet Gateway ID",
+      "Value": { "Ref": "InternetGateway" },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-InternetGatewayId" } }
+    },
+    "NatGateway1Id": {
+      "Description": "NAT Gateway 1 ID",
+      "Value": {
+        "Fn::If": ["CreateNatGateway", { "Ref": "NatGateway1" }, "Not Created"]
+      },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-NatGateway1Id" } }
+    },
+    "NatGateway2Id": {
+      "Description": "NAT Gateway 2 ID",
+      "Value": {
+        "Fn::If": ["CreateNatGateway", { "Ref": "NatGateway2" }, "Not Created"]
+      },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-NatGateway2Id" } }
     }
   }
 }

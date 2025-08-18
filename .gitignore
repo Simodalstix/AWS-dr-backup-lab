@@ -1,8 +1,67 @@
+# Project specific
 initial-prompt.md
+
+# Dependencies
 node_modules/
+.venv/
+
+# Build outputs
 dist/
 build/
 coverage/
-.env    
-.venv
+cdk.out/
+.cdk.staging
+
+# Python
 *.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Security - Never commit secrets or credentials
+.env
+.env.local
+.env.production
+.env.staging
+.env.development
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+credentials.json
+config.json
+aws-credentials
+.aws/credentials
+.aws/config
+
+# IDE and editor files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# CDK specific
+cdk.context.json

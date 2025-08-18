@@ -21,6 +21,7 @@ from constructs.template_storage import TemplateStorage
 from constructs.deployment_automation import DeploymentAutomation
 from constructs.recovery_parameters import RecoveryParameters
 from constructs.kms_multi_region_key import KMSMultiRegionKey
+from constructs.secrets_manager import SecretsManager
 
 
 class BackupStack(Stack):
@@ -62,6 +63,9 @@ class BackupStack(Stack):
 
         # Create recovery templates
         self._create_recovery_templates()
+
+        # Create secrets manager
+        self._create_secrets_manager()
 
         # Create deployment automation
         self._create_deployment_automation()
@@ -119,6 +123,16 @@ class BackupStack(Stack):
                 "network-template.json",
                 "application-template.json",
             ],
+        )
+
+    def _create_secrets_manager(self) -> None:
+        """Create secrets manager for application configuration."""
+
+        self._secrets_manager = SecretsManager(
+            self,
+            "SecretsManager",
+            kms_key=self._kms_key.key,
+            replica_regions=[self._config.get("secondary_region", "us-west-2")],
         )
 
     def _create_deployment_automation(self) -> None:
@@ -227,6 +241,11 @@ class BackupStack(Stack):
     def template_storage(self) -> TemplateStorage:
         """Get the template storage construct."""
         return self._template_storage
+
+    @property
+    def secrets_manager(self) -> SecretsManager:
+        """Get the secrets manager construct."""
+        return self._secrets_manager
 
     @property
     def deployment_automation(self) -> DeploymentAutomation:

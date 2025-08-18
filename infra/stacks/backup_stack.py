@@ -154,7 +154,7 @@ class BackupStack(Stack):
 
         # Add RDS instance to backup
         self._rds_backup_selection = self._backup_plan.add_resource_selection(
-            resource_arn=self._rds_instance.instance_arn,
+            resource_arn=self._rds_instance.primary_instance.instance_arn,
             backup_plan=self._backup_plan.rds_backup_plan,
         )
 

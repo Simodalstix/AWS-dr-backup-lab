@@ -8,8 +8,8 @@ import aws_cdk as cdk
 from aws_cdk import Environment
 
 from stacks.primary_network import PrimaryNetworkStack
-from stacks.primary_app import PrimaryAppStack
 from stacks.primary_data import PrimaryDataStack
+from stacks.primary_app import PrimaryAppStack
 from stacks.backup_stack import BackupStack
 
 
@@ -67,6 +67,7 @@ def main():
         description="Primary region data infrastructure with backup configuration",
     )
 
+    # Primary application stack - demonstrates the workload being backed up
     primary_app = PrimaryAppStack(
         app,
         "PrimaryAppStack",
@@ -75,10 +76,10 @@ def main():
         s3_bucket=primary_data.app_data_bucket,
         env=primary_env,
         config=config,
-        description="Primary region application infrastructure",
+        description="Primary region application infrastructure (workload to backup)",
     )
 
-    # Backup stack (replaces secondary region warm standby)
+    # Backup stack - this is the core of our backup and restore pattern
     backup_stack = BackupStack(
         app,
         "BackupStack",
@@ -91,11 +92,8 @@ def main():
         description="Backup and restore infrastructure for disaster recovery",
     )
 
-    # Stack dependencies
-    primary_data.add_dependency(primary_network)
-    primary_app.add_dependency(primary_data)
-    backup_stack.add_dependency(primary_data)
-    backup_stack.add_dependency(primary_app)
+    # Dependencies are automatically resolved by CDK based on resource references
+    # No need to explicitly declare them
 
     # Add tags to all stacks
     tags = {

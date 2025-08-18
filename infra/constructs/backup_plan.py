@@ -113,7 +113,11 @@ class BackupPlan(Construct):
                     delete_after=Duration.days(self._backup_retention_days),
                     copy_actions=[
                         backup.BackupPlanCopyActionProps(
-                            destination_backup_vault_arn=f"arn:aws:backup:{self._secondary_region}:{Stack.of(self).account}:backup-vault:dr-lab-backup-vault-{self._secondary_region}",
+                            destination_backup_vault=backup.BackupVault.from_backup_vault_name(
+                                self,
+                                "SecondaryVaultRef1",
+                                f"dr-lab-backup-vault-{self._secondary_region}",
+                            ),
                             delete_after=Duration.days(self._backup_retention_days),
                         )
                     ],
@@ -143,7 +147,11 @@ class BackupPlan(Construct):
                     delete_after=Duration.days(self._backup_retention_days),
                     copy_actions=[
                         backup.BackupPlanCopyActionProps(
-                            destination_backup_vault_arn=f"arn:aws:backup:{self._secondary_region}:{Stack.of(self).account}:backup-vault:dr-lab-backup-vault-{self._secondary_region}",
+                            destination_backup_vault=backup.BackupVault.from_backup_vault_name(
+                                self,
+                                "SecondaryVaultRef2",
+                                f"dr-lab-backup-vault-{self._secondary_region}",
+                            ),
                             delete_after=Duration.days(self._backup_retention_days),
                         )
                     ],

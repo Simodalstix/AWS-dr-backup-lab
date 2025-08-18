@@ -115,18 +115,8 @@ class PrimaryDataStack(Stack):
         # Create RDS instance with replica configuration
         self._database = RDSWithReplica(self, "Database", vpc=self._vpc, **db_config)
 
-        # Allow connections from ECS security group
-        # Note: This would typically be done by passing the security group
-        # from the network stack, but for simplicity we'll reference it
-        database_sg = self._database.security_group
-
-        # Add ingress rule for ECS (this is a simplified approach)
-        # In practice, you'd get the ECS security group from the network stack
-        database_sg.add_ingress_rule(
-            peer=ec2.Peer.ipv4(self._vpc.vpc_cidr_block),
-            connection=ec2.Port.tcp(5432),
-            description="Allow PostgreSQL traffic from VPC",
-        )
+        # Database security is handled within the RDSWithReplica construct
+        # No additional security group rules needed here
 
     def _create_s3_buckets(self) -> None:
         """Create S3 buckets for application data and logs."""

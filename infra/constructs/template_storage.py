@@ -80,7 +80,7 @@ class TemplateStorage(Construct):
         self._template_deployment = s3deploy.BucketDeployment(
             self,
             "TemplateDeployment",
-            sources=[s3deploy.Source.asset("infra/templates")],
+            sources=[s3deploy.Source.asset("templates")],
             destination_bucket=self._template_bucket,
             destination_key_prefix="templates/",
             prune=True,  # Remove files not in source

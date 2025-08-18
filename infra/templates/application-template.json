@@ -1,0 +1,193 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "DR Lab Recovery Application Infrastructure",
+  "Parameters": {
+    "VpcId": {
+      "Type": "String",
+      "Description": "VPC ID from network stack"
+    },
+    "PublicSubnet1Id": {
+      "Type": "String",
+      "Description": "Public Subnet 1 ID"
+    },
+    "PublicSubnet2Id": {
+      "Type": "String",
+      "Description": "Public Subnet 2 ID"
+    },
+    "PrivateSubnet1Id": {
+      "Type": "String",
+      "Description": "Private Subnet 1 ID"
+    },
+    "PrivateSubnet2Id": {
+      "Type": "String",
+      "Description": "Private Subnet 2 ID"
+    },
+    "ContainerImage": {
+      "Type": "String",
+      "Default": "nginx:latest",
+      "Description": "Container image to deploy"
+    },
+    "ContainerPort": {
+      "Type": "Number",
+      "Default": 80,
+      "Description": "Container port"
+    },
+    "TaskCpu": {
+      "Type": "Number",
+      "Default": 256,
+      "Description": "ECS task CPU units"
+    },
+    "TaskMemory": {
+      "Type": "Number",
+      "Default": 512,
+      "Description": "ECS task memory in MiB"
+    },
+    "DatabaseEndpoint": {
+      "Type": "String",
+      "Description": "Database endpoint from restored RDS"
+    },
+    "S3BucketName": {
+      "Type": "String",
+      "Description": "S3 bucket name for application data"
+    }
+  },
+  "Resources": {
+    "ECSCluster": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": "dr-lab-recovery-cluster",
+        "CapacityProviders": ["FARGATE"],
+        "DefaultCapacityProviderStrategy": [
+          {
+            "CapacityProvider": "FARGATE",
+            "Weight": 1
+          }
+        ],
+        "ClusterSettings": [
+          {
+            "Name": "containerInsights",
+            "Value": "enabled"
+          }
+        ],
+        "Tags": [
+          { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" }
+        ]
+      }
+    },
+    "ALBSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Security group for ALB",
+        "VpcId": { "Ref": "VpcId" },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 80,
+            "ToPort": 80,
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          { "Key": "Name", "Value": "DR-Lab-Recovery-ALB-SG" },
+          { "Key": "Project", "Value": "DR-Lab" }
+        ]
+      }
+    },
+    "ECSSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Security group for ECS tasks",
+        "VpcId": { "Ref": "VpcId" },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": { "Ref": "ContainerPort" },
+            "ToPort": { "Ref": "ContainerPort" },
+            "SourceSecurityGroupId": { "Ref": "ALBSecurityGroup" }
+          }
+        ],
+        "Tags": [
+          { "Key": "Name", "Value": "DR-Lab-Recovery-ECS-SG" },
+          { "Key": "Project", "Value": "DR-Lab" }
+        ]
+      }
+    },
+    "ApplicationLoadBalancer": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Name": "dr-lab-recovery-alb",
+        "Scheme": "internet-facing",
+        "Type": "application",
+        "Subnets": [{ "Ref": "PublicSubnet1Id" }, { "Ref": "PublicSubnet2Id" }],
+        "SecurityGroups": [{ "Ref": "ALBSecurityGroup" }],
+        "Tags": [
+          { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" }
+        ]
+      }
+    },
+    "TargetGroup": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "Name": "dr-lab-recovery-tg",
+        "Port": { "Ref": "ContainerPort" },
+        "Protocol": "HTTP",
+        "TargetType": "ip",
+        "VpcId": { "Ref": "VpcId" },
+        "HealthCheckPath": "/healthz",
+        "HealthCheckProtocol": "HTTP",
+        "HealthCheckIntervalSeconds": 30,
+        "HealthCheckTimeoutSeconds": 5,
+        "HealthyThresholdCount": 2,
+        "UnhealthyThresholdCount": 3,
+        "Tags": [
+          { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" }
+        ]
+      }
+    },
+    "Listener": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "DefaultActions": [
+          {
+            "Type": "forward",
+            "TargetGroupArn": { "Ref": "TargetGroup" }
+          }
+        ],
+        "LoadBalancerArn": { "Ref": "ApplicationLoadBalancer" },
+        "Port": 80,
+        "Protocol": "HTTP"
+      }
+    }
+  },
+  "Outputs": {
+    "ClusterArn": {
+      "Description": "ECS Cluster ARN",
+      "Value": { "Fn::GetAtt": ["ECSCluster", "Arn"] },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-ClusterArn" } }
+    },
+    "LoadBalancerDNS": {
+      "Description": "Load Balancer DNS Name",
+      "Value": { "Fn::GetAtt": ["ApplicationLoadBalancer", "DNSName"] },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-LoadBalancerDNS" } }
+    },
+    "TargetGroupArn": {
+      "Description": "Target Group ARN",
+      "Value": { "Ref": "TargetGroup" },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-TargetGroupArn" } }
+    },
+    "ApplicationURL": {
+      "Description": "Application URL",
+      "Value": { "Fn::Sub": "http://${ApplicationLoadBalancer.DNSName}" },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-ApplicationURL" } }
+    }
+  }
+}

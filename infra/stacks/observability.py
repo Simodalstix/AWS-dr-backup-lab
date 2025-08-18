@@ -22,6 +22,19 @@ from aws_cdk import (
 from constructs import Construct
 
 
+# This ObservabilityStack class extends until the end of the file. It contains:
+# - Constructor (__init__) that takes parameters for ALBs, databases, ECS services, S3 buckets and config
+# - Private methods:
+#   - _create_notification_topic() - Creates SNS topic for alerts
+#   - _create_dashboard() - Creates CloudWatch dashboard
+#   - _create_widgets() - Creates dashboard widgets for metrics
+#   - _create_alarms() - Creates CloudWatch alarms
+#   - _create_outputs() - Creates CloudFormation outputs
+#   - _add_tags() - Adds resource tags
+# - Public properties and methods:
+#   - dashboard property - Returns CloudWatch dashboard
+#   - notification_topic property - Returns SNS topic
+#   - add_custom_alarm() - Adds custom CloudWatch alarm
 class ObservabilityStack(Stack):
     """
     Stack that implements monitoring and observability for the DR environment.
@@ -82,6 +95,7 @@ class ObservabilityStack(Stack):
             "MonitoringNotificationTopic",
             display_name="DR Lab Monitoring Notifications",
             topic_name="dr-lab-monitoring-notifications",
+            master_key=kms.Key(self, "SNSKey"),  # Add KMS encryption
         )
 
         # Add email subscription if configured
@@ -95,8 +109,30 @@ class ObservabilityStack(Stack):
         """Create CloudWatch dashboard with key metrics."""
 
         self._dashboard = cloudwatch.Dashboard(
-            self, "DRDashboard", dashboard_name="DR-Lab-Dashboard"
+            self,
+            "DRDashboard",
+            dashboard_name="DR-Lab-Dashboard",
+            # Add default widget layout
+            widget_layout=cloudwatch.DashboardWidgetLayout(width=24, height=6),
         )
+        # Add log group for dashboard logs
+        log_group = logs.LogGroup(
+            self,
+            "DashboardLogGroup",
+            log_group_name="/aws/cloudwatch/dashboard",
+            retention=logs.RetentionDays.ONE_MONTH,
+        )
+
+        # Add log group to dashboard
+        self._dashboard.add_log_group(log_group)
+
+        # Create widgets for the dashboard
+        self._create_widgets()
+
+    def _create_widgets(self) -> None:
+        """Create CloudWatch widgets for the dashboard."""
+
+        # Create widgets for ALB, ECS, RDS, and S3 metrics
 
         # ALB Metrics - Primary Region
         primary_alb_5xx_widget = cloudwatch.GraphWidget(
@@ -432,7 +468,7 @@ class ObservabilityStack(Stack):
         # RDS CPU Utilization - Primary
         primary_rds_cpu_alarm = cloudwatch.Alarm(
             self,
-            "PrimaryRDS CPUAlarm",
+            "PrimaryRDSCPUAlarm",
             metric=cloudwatch.Metric(
                 namespace="AWS/RDS",
                 metric_name="CPUUtilization",
@@ -502,7 +538,8 @@ class ObservabilityStack(Stack):
         """Add tags to all resources in this stack."""
 
         Tags.of(self).add("Component", "Observability")
-        Tags.of(self).add("Environment", "Production")
+        Tags.of(self).add("Environment", self._config.get("environment", "Production"))
+        Tags.of(self).add("Project", self._config.get("project_name", "DR Lab"))
 
     @property
     def dashboard(self) -> cloudwatch.Dashboard:
@@ -526,18 +563,33 @@ class ObservabilityStack(Stack):
     ) -> cloudwatch.Alarm:
         """Add a custom alarm to the monitoring system."""
 
-        alarm = cloudwatch.Alarm(
-            self,
-            alarm_id,
-            metric=metric,
-            threshold=threshold,
-            evaluation_periods=evaluation_periods,
-            comparison_operator=comparison_operator,
-            alarm_description=alarm_description,
-            alarm_name=alarm_name or f"dr-lab-{alarm_id.lower()}",
-        )
+        # Validate inputs
+        if not alarm_id or not alarm_id.strip():
+            raise ValueError("alarm_id cannot be empty")
+        if not metric:
+            raise ValueError("metric is required")
+        if evaluation_periods < 1:
+            raise ValueError("evaluation_periods must be at least 1")
+        if not hasattr(self, "_notification_topic") or not self._notification_topic:
+            raise RuntimeError("notification_topic not initialized")
 
-        # Add action to alarm
-        alarm.add_alarm_action(cloudwatch_actions.SnsAction(self._notification_topic))
+        try:
+            alarm = cloudwatch.Alarm(
+                self,
+                alarm_id,
+                metric=metric,
+                threshold=threshold,
+                evaluation_periods=evaluation_periods,
+                comparison_operator=comparison_operator,
+                alarm_description=alarm_description,
+                alarm_name=alarm_name or f"dr-lab-{alarm_id.lower()}",
+            )
 
-        return alarm
+            # Add action to alarm
+            alarm.add_alarm_action(
+                cloudwatch_actions.SnsAction(self._notification_topic)
+            )
+
+            return alarm
+        except Exception as e:
+            raise RuntimeError(f"Failed to create alarm {alarm_id}: {str(e)}")

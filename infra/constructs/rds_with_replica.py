@@ -113,7 +113,7 @@ class RDSWithReplica(Construct):
         # Allow PostgreSQL traffic from VPC
         self._security_group.add_ingress_rule(
             peer=ec2.Peer.ipv4(self._vpc.vpc_cidr_block),
-            connection=ec2.Port.tcp(5432),
+            connection=ec2.Port.tcp(5433),
             description="Allow PostgreSQL traffic from VPC",
         )
 
@@ -156,7 +156,7 @@ class RDSWithReplica(Construct):
                 # Replication settings
                 "wal_level": "replica",
                 "max_wal_senders": "3",
-                "wal_keep_segments": "32",
+                "wal_keep_size": "512MB",
             },
         )
 
@@ -209,14 +209,15 @@ class RDSWithReplica(Construct):
             storage_encryption_key=self._kms_key,
             backup_retention=self._backup_retention,
             delete_automated_backups=True,
-            deletion_protection=False,
+            deletion_protection=True,
             enable_performance_insights=self._enable_performance_insights,
             monitoring_interval=self._monitoring_interval,
             monitoring_role=self._monitoring_role,
             cloudwatch_logs_exports=self._log_types if self._enable_logging else None,
             auto_minor_version_upgrade=True,
             allow_major_version_upgrade=False,
-            multi_az=False,  # Single AZ for cost optimization
+            multi_az=True,
+            port=5433,  # Non-default port for security
             publicly_accessible=False,
             removal_policy=RemovalPolicy.SNAPSHOT,
         )
@@ -257,9 +258,14 @@ class RDSWithReplica(Construct):
     def _create_read_replica(self) -> None:
         """Create cross-region read replica."""
 
+        if not self._replica_region:
+            raise ValueError("Replica region must be specified to create read replica")
+
         # Note: Cross-region read replicas need to be created in the target region
         # This is a placeholder for the replica configuration
         # In practice, this would be handled by a separate stack in the replica region
+        print(f"Warning: Read replica configuration stored but not created. "
+              f"Deploy a separate stack in {self._replica_region} to create the actual replica.")
 
         self._replica_config = {
             "source_db_identifier": self._primary_instance.instance_identifier,

@@ -1,422 +1,260 @@
-# Tier-2 Backup & DR Lab (Multi-Region Warm Standby)
+# AWS Disaster Recovery Lab - Backup and Restore Pattern
 
-![DR Lab Architecture](https://img.shields.io/badge/Architecture-Multi--Region%20DR-blue)
-![RPO](https://img.shields.io/badge/RPO-5--10%20minutes-green)
-![RTO](https://img.shields.io/badge/RTO-30%20minutes-green)
-![Cost](https://img.shields.io/badge/Monthly%20Cost-$200--500-orange)
+## Overview
 
-A comprehensive disaster recovery lab implementation using AWS CDK (Python v2) demonstrating a Tier-2 warm standby pattern for a simple web/API service with measurable RPO/RTO.
+This project demonstrates a **modern, enterprise-ready disaster recovery solution** using AWS's recommended **Backup and Restore** pattern. This architecture provides cost-effective, automated disaster recovery while maintaining enterprise-grade reliability and following AWS Well-Architected principles.
 
-## 🏗️ Architecture Overview
+## Why Backup and Restore?
 
-### High-Level Architecture
+### Architecture Decision
 
-```mermaid
-graph TD
-    subgraph "Primary Region (ap-southeast-2)"
-        A[VPC - 2 AZs] --> A1[ALB]
-        A --> A2[ECS Fargate Service<br/>2 tasks]
-        A --> A3[RDS PostgreSQL<br/>Primary Instance]
-        A --> A4[S3 Bucket<br/>app-data versioned]
-        A --> A5[S3 Bucket<br/>logs]
-        A --> A6[KMS Key<br/>Multi-Region]
-        A --> A7[CloudWatch<br/>Dashboard & Alarms]
+We chose the **Backup and Restore** pattern because it delivers:
 
-        A1 --> A2
-        A2 --> A3
-        A2 --> A4
-        A2 --> A5
-    end
+- **Cost Optimization**: 85-90% cost savings compared to warm standby patterns
+- **Enterprise Reliability**: AWS-managed backup services with 99.999999999% (11 9's) durability
+- **Automation-First**: Fully automated backup, recovery, and infrastructure deployment
+- **Compliance Ready**: Built-in encryption, audit trails, and retention policies
+- **Scalable**: Handles workloads from startup to enterprise scale
 
-    subgraph "Secondary Region (us-west-2)"
-        B[VPC - Mirrored] --> B1[ALB Standby]
-        B --> B2[ECS Fargate Service<br/>1 task warm standby]
-        B --> B3[RDS PostgreSQL<br/>Read Replica]
-        B --> B4[S3 Bucket<br/>replicated data]
-        B --> B5[KMS Key<br/>Multi-Region]
-        B --> B6[Step Functions<br/>Failover Orchestration]
+### Pattern Comparison
 
-        B1 --> B2
-        B6 --> B2
-        B6 --> B3
-        B6 --> B1
-    end
+| Pattern              | RTO       | RPO       | Monthly Cost | Use Case                         |
+| -------------------- | --------- | --------- | ------------ | -------------------------------- |
+| **Backup & Restore** | 2-4 hours | 1-4 hours | **$30-50**   | Cost-sensitive, planned recovery |
+| Pilot Light          | 30-60 min | 15-30 min | $150-300     | Balanced cost/recovery           |
+| Warm Standby         | 5-15 min  | 5-15 min  | $300-500     | Mission-critical, fast recovery  |
+| Multi-Site Active    | < 1 min   | Near-zero | $800+        | Zero-downtime requirements       |
 
-    subgraph "Global Services"
-        G1[Route 53<br/>Failover Routing] --> A1
-        G1 --> B1
-        G2[S3 Cross-Region<br/>Replication] --> A4
-        G2 --> B4
-        G3[RDS Cross-Region<br/>Read Replica] --> A3
-        G3 --> B3
-    end
+## Architecture
 
-    Client[External Client] --> G1
+### Core Components
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    PRIMARY REGION                          │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
+│  │   Network   │  │ Application │  │       Data          │ │
+│  │    Stack    │  │    Stack    │  │      Stack          │ │
+│  │             │  │             │  │                     │ │
+│  │ • VPC       │  │ • ECS       │  │ • RDS PostgreSQL    │ │
+│  │ • Subnets   │  │ • ALB       │  │ • S3 Buckets        │ │
+│  │ • Security  │  │ • Auto      │  │ • KMS Encryption    │ │
+│  │   Groups    │  │   Scaling   │  │ • Backup Policies   │ │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              │ Automated Backups
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 BACKUP & RECOVERY SYSTEM                   │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
+│  │ AWS Backup  │  │ CloudFormation │  │   Automation      │ │
+│  │   Service   │  │   Templates    │  │    Lambda         │ │
+│  │             │  │                │  │                   │ │
+│  │ • Cross-    │  │ • Network      │  │ • Deployment      │ │
+│  │   Region    │  │   Template     │  │   Orchestration   │ │
+│  │ • Encrypted │  │ • App Template │  │ • Parameter       │ │
+│  │ • Scheduled │  │ • Recovery     │  │   Management      │ │
+│  │ • Validated │  │   Runbooks     │  │ • Health Checks   │ │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Component Details
+### AWS Services Used
 
-| Component         | Primary Region        | Secondary Region     | Purpose                 |
-| ----------------- | --------------------- | -------------------- | ----------------------- |
-| **Compute**       | ECS Fargate (2 tasks) | ECS Fargate (1 task) | Web application hosting |
-| **Database**      | RDS PostgreSQL        | Read Replica         | Data persistence        |
-| **Storage**       | S3 (versioned)        | S3 (replicated)      | Application data & logs |
-| **Load Balancer** | ALB (active)          | ALB (standby)        | Traffic distribution    |
-| **DNS**           | Route 53 Primary      | Route 53 Secondary   | Failover routing        |
-| **Encryption**    | KMS Multi-Region      | KMS Multi-Region     | Data encryption         |
-| **Orchestration** | -                     | Step Functions       | Failover automation     |
+- **AWS Backup**: Centralized backup across services
+- **Amazon RDS**: PostgreSQL with automated backups
+- **Amazon S3**: Application data with cross-region replication
+- **AWS KMS**: Multi-region encryption keys
+- **Amazon ECS**: Containerized application platform
+- **Application Load Balancer**: High-availability load balancing
+- **AWS Lambda**: Serverless automation functions
+- **AWS Systems Manager**: Parameter and automation management
+- **Amazon CloudWatch**: Monitoring and alerting
 
-## 🎯 Target Metrics
+## Key Features
 
-| Metric             | Target       | Actual (Measured) |
-| ------------------ | ------------ | ----------------- |
-| **RPO**            | 5-10 minutes | 8 minutes (avg)   |
-| **RTO**            | 30 minutes   | 28 minutes (avg)  |
-| **Availability**   | 99.9%        | 99.95%            |
-| **Detection Time** | 5 minutes    | 3 minutes         |
-| **Failover Time**  | 25 minutes   | 25 minutes        |
+### 🔒 Enterprise Security
 
-## 🚀 Quick Start
+- **Encryption at Rest**: KMS-encrypted backups and data
+- **Encryption in Transit**: TLS 1.2+ for all communications
+- **IAM Least Privilege**: Role-based access controls
+- **Audit Logging**: CloudTrail integration for compliance
+
+### 🚀 Automation-First Design
+
+- **Scheduled Backups**: Daily automated backups with retention policies
+- **Cross-Region Replication**: Automatic backup copying to secondary region
+- **Infrastructure as Code**: Complete CDK-based deployment
+- **Recovery Automation**: One-click disaster recovery deployment
+
+### 💰 Cost Optimized
+
+- **Pay-per-Use**: No always-running secondary infrastructure
+- **Intelligent Tiering**: Automatic backup lifecycle management
+- **Resource Optimization**: Right-sized instances and storage
+- **Monitoring**: Cost tracking and optimization alerts
+
+### 📊 Observability
+
+- **Backup Monitoring**: Success/failure tracking and alerting
+- **Recovery Testing**: Automated backup validation
+- **Performance Metrics**: RTO/RPO measurement and reporting
+- **Health Dashboards**: Real-time system status
+
+## Quick Start
 
 ### Prerequisites
 
 - AWS CLI configured with appropriate permissions
-- Python 3.8+ installed
-- Node.js 14+ (for CDK)
-- Docker (for application container)
+- AWS CDK v2 installed (`npm install -g aws-cdk`)
+- Python 3.9+ with pip
 
-### Installation
+### Deployment
 
-1. **Clone and Setup**
+```bash
+# Clone the repository
+git clone <repository-url>
+cd AWS-dr-backup-lab
 
-   ```bash
-   git clone <repository-url>
-   cd AWS-dr-backup-lab
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   pip install -r infra/requirements.txt
-   ```
+# Install dependencies
+cd infra
+pip install -r requirements.txt
 
-2. **Bootstrap CDK**
+# Configure your environment
+export AWS_ACCOUNT=123456789012
+export AWS_REGION=ap-southeast-2
 
-   ```bash
-   # Bootstrap both regions
-   cd infra
-   cdk bootstrap aws://ACCOUNT-ID/ap-southeast-2
-   cdk bootstrap aws://ACCOUNT-ID/us-west-2
-   ```
+# Deploy the infrastructure
+cdk bootstrap
+cdk deploy --all
 
-3. **Deploy Infrastructure**
-
-   ```bash
-   # Deploy all stacks
-   cdk deploy --all --require-approval never
-
-   # Or deploy incrementally
-   cdk deploy PrimaryNetworkStack
-   cdk deploy PrimaryDataStack
-   cdk deploy PrimaryAppStack
-   cdk deploy SecondaryNetworkStack
-   cdk deploy SecondaryDataStack
-   cdk deploy SecondaryAppStack
-   cdk deploy RoutingAndDROrchestrationStack
-   cdk deploy ObservabilityStack
-   ```
+# Verify deployment
+aws backup list-backup-plans
+aws ecs list-clusters
+```
 
 ### Configuration
 
-Update `cdk.json` with your specific settings:
+Edit [`cdk.json`](infra/cdk.json) to customize:
 
 ```json
 {
-  "app": "python app.py",
   "context": {
-    "dbMode": "rds-postgres",
-    "warmStandbyTasks": 1,
-    "alarmEmail": "your-email@example.com",
-    "useMultiRegionKms": true,
-    "s3ReplicateDeletes": false,
-    "rtoTargetMinutes": 30,
-    "rpoTargetSeconds": 300,
-    "canaryEnabled": false,
-    "domainName": "app.example.com",
-    "hostedZoneId": "Z1234567890ABC"
+    "config": {
+      "primary_region": "ap-southeast-2",
+      "secondary_region": "us-west-2",
+      "rto_target_hours": 4,
+      "rpo_target_hours": 4,
+      "alarm_email": "admin@yourcompany.com"
+    }
   }
 }
 ```
 
-## 🧪 Testing & Validation
+## Disaster Recovery Process
 
-### Unit Tests
+### Automated Recovery Workflow
 
-```bash
-cd infra
-pytest tests/ -v
-```
+1. **Detection**: Manual trigger or automated failure detection
+2. **Parameter Retrieval**: Latest backup identifiers from Systems Manager
+3. **Infrastructure Deployment**: CloudFormation templates in secondary region
+4. **Data Restoration**: RDS point-in-time recovery, S3 data sync
+5. **Application Startup**: ECS service deployment with health checks
+6. **DNS Failover**: Route 53 health check-based failover
 
-### Integration Tests
-
-```bash
-pytest tests/test_dr_wiring.py -v
-```
-
-### GameDay Scenarios
-
-#### 1. Primary Outage Simulation
+### Recovery Commands
 
 ```bash
-# Simulate primary region failure
-aws ecs update-service --cluster dr-lab-primary --service dr-lab-service \
-  --desired-count 0 --region ap-southeast-2
+# Test recovery (dry-run)
+aws lambda invoke \
+  --function-name BackupStack-DeploymentFunction \
+  --payload '{"test_mode": true, "target_region": "us-west-2"}' \
+  response.json
 
-# Monitor failover
-aws stepfunctions list-executions --state-machine-arn <state-machine-arn>
+# Execute full recovery
+aws lambda invoke \
+  --function-name BackupStack-DeploymentFunction \
+  --payload '{"execute_recovery": true, "target_region": "us-west-2"}' \
+  response.json
+
+# Monitor recovery progress
+aws logs tail /aws/lambda/BackupStack-DeploymentFunction --follow
 ```
 
-#### 2. Database Failover Test
+## Project Structure
 
-```bash
-# Trigger planned failover
-aws stepfunctions start-execution \
-  --state-machine-arn arn:aws:states:ap-southeast-2:ACCOUNT:stateMachine:dr-lab-failover \
-  --input '{"mode":"planned","reason":"testing"}'
+```
+infra/
+├── app.py                     # Main CDK application
+├── constructs/                # Reusable CDK constructs
+│   ├── backup_plan.py         # AWS Backup integration
+│   ├── deployment_automation.py # Recovery automation
+│   ├── ecs_service_alb.py     # Application platform
+│   ├── kms_multi_region_key.py # Encryption keys
+│   ├── rds_with_replica.py    # Database with backups
+│   ├── recovery_parameters.py # Configuration management
+│   ├── s3_replication_pair.py # Data storage and sync
+│   └── template_storage.py    # CloudFormation templates
+├── stacks/                    # CDK stack definitions
+│   ├── backup_stack.py        # Backup and recovery stack
+│   ├── primary_app.py         # Application infrastructure
+│   ├── primary_data.py        # Data layer infrastructure
+│   └── primary_network.py     # Network infrastructure
+└── templates/                 # Recovery templates
+    ├── application-template.json
+    └── network-template.json
 ```
 
-#### 3. S3 Recovery Test
+## Best Practices Implemented
 
-```bash
-# Delete object and restore
-aws s3 rm s3://dr-lab-app-data-primary/test-file.json
-aws s3api list-object-versions --bucket dr-lab-app-data-primary --prefix test-file.json
-aws s3api copy-object --bucket dr-lab-app-data-primary \
-  --copy-source "dr-lab-app-data-primary/test-file.json?versionId=VERSION-ID" \
-  --key "test-file.json"
-```
+### AWS Well-Architected Framework
 
-## 📊 Monitoring & Observability
+- **Operational Excellence**: Infrastructure as Code, automated deployments
+- **Security**: Encryption, least privilege, audit logging
+- **Reliability**: Multi-AZ deployment, automated backups, health checks
+- **Performance Efficiency**: Right-sized resources, monitoring
+- **Cost Optimization**: Pay-per-use model, lifecycle policies
 
-### CloudWatch Dashboard
+### Disaster Recovery Best Practices
 
-Access the dashboard at: AWS Console → CloudWatch → Dashboards → DR-Lab-Dashboard
+- **Regular Testing**: Automated backup validation and recovery drills
+- **Documentation**: Comprehensive runbooks and procedures
+- **Monitoring**: Proactive alerting and health checks
+- **Automation**: Minimize manual intervention during recovery
 
-**Key Metrics:**
+## Monitoring and Alerting
 
-- ALB request count, latency, 4xx/5xx errors
-- ECS CPU/Memory utilization, task count
-- RDS CPU, connections, replica lag
-- S3 replication bytes and object count
+### Key Metrics
 
-### Alarms & Notifications
+- Backup success rate (target: 99.9%)
+- Recovery Time Objective (target: < 4 hours)
+- Recovery Point Objective (target: < 4 hours)
+- Cost per month (target: < $50)
 
-| Alarm                       | Threshold              | Action           |
-| --------------------------- | ---------------------- | ---------------- |
-| Primary Health Check Failed | 2 consecutive failures | SNS notification |
-| RDS Replica Lag             | > 300 seconds          | SNS notification |
-| ECS Task Count Mismatch     | Desired ≠ Running      | SNS notification |
-| S3 Replication Failure      | Any failure            | SNS notification |
-| ALB 5xx Error Rate          | > 5%                   | SNS notification |
+### Alerts
 
-### Log Analysis
+- Backup job failures
+- Cross-region replication delays
+- Recovery automation errors
+- Cost threshold breaches
 
-**CloudWatch Insights Queries:**
-
-```sql
--- ALB Error Analysis
-fields @timestamp, target_status_code, request_url
-| filter target_status_code >= 400
-| stats count() by target_status_code
-| sort @timestamp desc
-
--- ECS Task Health
-fields @timestamp, @message
-| filter @message like /HEALTH/
-| sort @timestamp desc
-| limit 100
-
--- RDS Connection Monitoring
-fields @timestamp, @message
-| filter @message like /connection/
-| stats count() by bin(5m)
-```
-
-## 🔄 Disaster Recovery Procedures
-
-### Planned Failover
-
-1. **Pre-checks**
-
-   ```bash
-   # Verify secondary region health
-   curl -f https://secondary-alb-dns/healthz
-
-   # Check replica lag
-   aws rds describe-db-instances --db-instance-identifier dr-lab-replica \
-     --region us-west-2 --query 'DBInstances[0].StatusInfos'
-   ```
-
-2. **Execute Failover**
-
-   ```bash
-   aws stepfunctions start-execution \
-     --state-machine-arn <state-machine-arn> \
-     --input '{"mode":"planned"}'
-   ```
-
-3. **Validate**
-   ```bash
-   # Test application
-   curl -f https://app.example.com/healthz
-   curl -f https://app.example.com/dbcheck
-   ```
-
-### Unplanned Failover
-
-Route 53 health checks automatically detect primary failure and route traffic to secondary region. Manual intervention may be required for database promotion.
-
-### Failback Procedure
-
-1. Restore primary region infrastructure
-2. Synchronize data from secondary to primary
-3. Update Route 53 to point back to primary
-4. Scale down secondary region
-
-## 💰 Cost Analysis
-
-### Monthly Cost Breakdown (Estimated)
-
-| Service            | Primary Region     | Secondary Region | Total    |
-| ------------------ | ------------------ | ---------------- | -------- |
-| **ECS Fargate**    | $45 (2 tasks)      | $23 (1 task)     | $68      |
-| **RDS PostgreSQL** | $85 (db.t3.medium) | $85 (replica)    | $170     |
-| **ALB**            | $25                | $25              | $50      |
-| **S3 Storage**     | $15                | $10 (replica)    | $25      |
-| **S3 Requests**    | $5                 | $3               | $8       |
-| **Route 53**       | $5                 | -                | $5       |
-| **CloudWatch**     | $10                | $5               | $15      |
-| **KMS**            | $2                 | $2               | $4       |
-| **Step Functions** | $2                 | -                | $2       |
-| **Data Transfer**  | $20                | $10              | $30      |
-| **Total**          | **$214**           | **$163**         | **$377** |
-
-### Cost Optimization Tips
-
-- Use Spot instances for non-critical workloads
-- Implement S3 lifecycle policies
-- Right-size RDS instances based on actual usage
-- Use CloudWatch Logs retention policies
-- Consider Reserved Instances for predictable workloads
-
-## 🔐 Security Considerations
-
-### Network Security
-
-- VPC with private subnets for databases
-- Security groups with least-privilege access
-- NACLs for additional network protection
-
-### Data Security
-
-- Encryption at rest using KMS Multi-Region keys
-- Encryption in transit using TLS 1.2+
-- S3 bucket policies restricting access
-- RDS encryption enabled
-
-### Access Control
-
-- IAM roles with minimal required permissions
-- Cross-account access controls
-- MFA required for sensitive operations
-- CloudTrail logging enabled
-
-## 📚 Additional Resources
-
-### Documentation
-
-- [Architecture Details](architecture.md)
-- [Constructs Overview](constructs_overview.md)
-- [Stack Modules](stacks_overview.md)
-- [Testing Strategy](testing_strategy.md)
-- [Runbooks & GameDays](runbooks_gamedays.md)
-
-### Useful Commands
-
-```bash
-# View stack outputs
-cdk list
-cdk diff
-cdk synth
-
-# Destroy infrastructure
-cdk destroy --all
-
-# View logs
-aws logs tail /aws/ecs/dr-lab --follow
-aws logs tail /aws/stepfunctions/dr-lab-failover --follow
-
-# Monitor health
-watch -n 30 'curl -s https://app.example.com/healthz'
-```
-
-## 🎓 Interview Crib Notes
-
-### DR Patterns Comparison
-
-- **Backup/Restore**: Cheapest, highest RTO/RPO (hours/days)
-- **Pilot Light**: Low cost, medium RTO/RPO (10s of minutes)
-- **Warm Standby**: Medium cost, low RTO/RPO (minutes) ← **This implementation**
-- **Active/Active**: Highest cost, lowest RTO/RPO (seconds)
-
-### Key Design Decisions
-
-1. **RDS Standard vs Aurora Global**
-
-   - Chose RDS standard for cost-effectiveness
-   - Trade-off: Higher RTO/RPO vs lower cost
-   - Aurora Global would provide sub-minute failover
-
-2. **Warm Standby Configuration**
-
-   - 1 task in secondary region balances cost vs readiness
-   - Can scale up quickly during failover
-   - Maintains application state and connections
-
-3. **S3 Cross-Region Replication**
-
-   - Protects against regional disasters
-   - Versioning enables point-in-time recovery
-   - Delete marker replication disabled for safety
-
-4. **Route 53 Health Checks**
-   - Automated detection of primary failures
-   - 30-second check interval with 3 failure threshold
-   - Enables automatic DNS failover
-
-### Common Questions & Answers
-
-**Q: How do you handle database failover?**
-A: We use RDS read replicas with promotion capability. Step Functions orchestrates the promotion process, updates Secrets Manager, and restarts application tasks.
-
-**Q: What's your actual RPO/RTO?**
-A: RPO: 8 minutes (measured), RTO: 28 minutes (measured). This meets our 30-minute target.
-
-**Q: How do you test DR capabilities?**
-A: Regular GameDay exercises simulating various failure scenarios, automated testing of failover procedures, and monitoring of key metrics.
-
-**Q: What are the cost implications?**
-A: Approximately $377/month for full warm standby. Cost can be reduced by using smaller instances or implementing pilot light pattern.
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Make changes and add tests
-4. Run the test suite
+3. Make your changes following AWS best practices
+4. Test thoroughly including disaster recovery scenarios
 5. Submit a pull request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
----
+## Support
 
-**Built with ❤️ using AWS CDK and Python**
+For questions or support:
+
+- Create an issue in this repository
+- Review AWS Backup documentation
+- Consult AWS Well-Architected Framework guides

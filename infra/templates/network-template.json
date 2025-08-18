@@ -1,0 +1,165 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "DR Lab Recovery Network Infrastructure",
+  "Parameters": {
+    "VpcCidr": {
+      "Type": "String",
+      "Default": "10.1.0.0/16",
+      "Description": "CIDR block for the VPC"
+    },
+    "AvailabilityZones": {
+      "Type": "Number",
+      "Default": 2,
+      "Description": "Number of availability zones"
+    }
+  },
+  "Resources": {
+    "VPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": { "Ref": "VpcCidr" },
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "Tags": [
+          { "Key": "Name", "Value": "DR-Lab-Recovery-VPC" },
+          { "Key": "Project", "Value": "DR-Lab" },
+          { "Key": "Environment", "Value": "Recovery" }
+        ]
+      }
+    },
+    "InternetGateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          { "Key": "Name", "Value": "DR-Lab-Recovery-IGW" },
+          { "Key": "Project", "Value": "DR-Lab" }
+        ]
+      }
+    },
+    "AttachGateway": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "InternetGatewayId": { "Ref": "InternetGateway" }
+      }
+    },
+    "PublicSubnet1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "CidrBlock": {
+          "Fn::Select": [0, { "Fn::Cidr": [{ "Ref": "VpcCidr" }, 4, 8] }]
+        },
+        "AvailabilityZone": { "Fn::Select": [0, { "Fn::GetAZs": "" }] },
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          { "Key": "Name", "Value": "DR-Lab-Recovery-Public-1" },
+          { "Key": "Project", "Value": "DR-Lab" }
+        ]
+      }
+    },
+    "PublicSubnet2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "CidrBlock": {
+          "Fn::Select": [1, { "Fn::Cidr": [{ "Ref": "VpcCidr" }, 4, 8] }]
+        },
+        "AvailabilityZone": { "Fn::Select": [1, { "Fn::GetAZs": "" }] },
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          { "Key": "Name", "Value": "DR-Lab-Recovery-Public-2" },
+          { "Key": "Project", "Value": "DR-Lab" }
+        ]
+      }
+    },
+    "PrivateSubnet1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "CidrBlock": {
+          "Fn::Select": [2, { "Fn::Cidr": [{ "Ref": "VpcCidr" }, 4, 8] }]
+        },
+        "AvailabilityZone": { "Fn::Select": [0, { "Fn::GetAZs": "" }] },
+        "Tags": [
+          { "Key": "Name", "Value": "DR-Lab-Recovery-Private-1" },
+          { "Key": "Project", "Value": "DR-Lab" }
+        ]
+      }
+    },
+    "PrivateSubnet2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "CidrBlock": {
+          "Fn::Select": [3, { "Fn::Cidr": [{ "Ref": "VpcCidr" }, 4, 8] }]
+        },
+        "AvailabilityZone": { "Fn::Select": [1, { "Fn::GetAZs": "" }] },
+        "Tags": [
+          { "Key": "Name", "Value": "DR-Lab-Recovery-Private-2" },
+          { "Key": "Project", "Value": "DR-Lab" }
+        ]
+      }
+    },
+    "PublicRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": { "Ref": "VPC" },
+        "Tags": [
+          { "Key": "Name", "Value": "DR-Lab-Recovery-Public-RT" },
+          { "Key": "Project", "Value": "DR-Lab" }
+        ]
+      }
+    },
+    "PublicRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "AttachGateway",
+      "Properties": {
+        "RouteTableId": { "Ref": "PublicRouteTable" },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": { "Ref": "InternetGateway" }
+      }
+    },
+    "PublicSubnetRouteTableAssociation1": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "PublicSubnet1" },
+        "RouteTableId": { "Ref": "PublicRouteTable" }
+      }
+    },
+    "PublicSubnetRouteTableAssociation2": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "PublicSubnet2" },
+        "RouteTableId": { "Ref": "PublicRouteTable" }
+      }
+    }
+  },
+  "Outputs": {
+    "VpcId": {
+      "Description": "VPC ID",
+      "Value": { "Ref": "VPC" },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-VpcId" } }
+    },
+    "PublicSubnet1Id": {
+      "Description": "Public Subnet 1 ID",
+      "Value": { "Ref": "PublicSubnet1" },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-PublicSubnet1Id" } }
+    },
+    "PublicSubnet2Id": {
+      "Description": "Public Subnet 2 ID",
+      "Value": { "Ref": "PublicSubnet2" },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-PublicSubnet2Id" } }
+    },
+    "PrivateSubnet1Id": {
+      "Description": "Private Subnet 1 ID",
+      "Value": { "Ref": "PrivateSubnet1" },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-PrivateSubnet1Id" } }
+    },
+    "PrivateSubnet2Id": {
+      "Description": "Private Subnet 2 ID",
+      "Value": { "Ref": "PrivateSubnet2" },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-PrivateSubnet2Id" } }
+    }
+  }
+}

@@ -14,36 +14,9 @@ A **cost-effective disaster recovery solution** using AWS's Backup and Restore p
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    PRIMARY REGION                          │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
-│  │   Network   │  │ Application │  │       Data          │ │
-│  │    Stack    │  │    Stack    │  │      Stack          │ │
-│  │             │  │             │  │                     │ │
-│  │ • VPC       │  │ • ECS       │  │ • RDS PostgreSQL    │ │
-│  │ • Subnets   │  │ • ALB       │  │ • S3 Buckets        │ │
-│  │ • Security  │  │ • Auto      │  │ • KMS Encryption    │ │
-│  │   Groups    │  │   Scaling   │  │ • Backup Policies   │ │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              │ Automated Backups
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 BACKUP & RECOVERY SYSTEM                   │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
-│  │ AWS Backup  │  │ CloudFormation │  │   Automation      │ │
-│  │   Service   │  │   Templates    │  │    Lambda         │ │
-│  │             │  │                │  │                   │ │
-│  │ • Cross-    │  │ • Network      │  │ • Deployment      │ │
-│  │   Region    │  │   Template     │  │   Orchestration   │ │
-│  │ • Encrypted │  │ • App Template │  │ • Parameter       │ │
-│  │ • Scheduled │  │ • Recovery     │  │   Management      │ │
-│  │ • Validated │  │   Runbooks     │  │ • Health Checks   │ │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
+![AWS DR Backup & Restore Architecture](diagrams/dr-backup-diagram.svg)
+
+*Architecture diagram created using AWS official icons and Excalidraw*
 
 ## Key Features
 

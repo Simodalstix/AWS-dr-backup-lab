@@ -44,7 +44,9 @@ jobs:
           
       - name: Install dependencies
         working-directory: infra
-        run: poetry install
+        run: |
+          poetry install --no-interaction
+          poetry show
         
       - name: Run linting
         working-directory: infra

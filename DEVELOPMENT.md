@@ -7,7 +7,7 @@
 curl -sSL https://install.python-poetry.org | python3 -
 
 # Clone and setup
-git clone https://github.com/simoda/AWS-dr-backup-restore.git
+git clone https://github.com/Simodalstix/AWS-dr-backup-restore.git
 cd AWS-dr-backup-restore
 
 # Install dependencies and bootstrap

@@ -1,8 +1,8 @@
 # AWS Disaster Recovery - Backup and Restore Pattern
 
-[![Build Status](https://github.com/simoda/AWS-dr-backup-restore/workflows/CI/badge.svg)](https://github.com/simoda/AWS-dr-backup-restore/actions)
+[![Build Status](https://github.com/Simodalstix/AWS-dr-backup-restore/workflows/CI/badge.svg)](https://github.com/Simodalstix/AWS-dr-backup-restore/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Release](https://img.shields.io/github/v/release/simoda/AWS-dr-backup-restore?include_prereleases)](https://github.com/simoda/AWS-dr-backup-restore/releases)
+[![Release](https://img.shields.io/github/v/release/Simodalstix/AWS-dr-backup-restore?include_prereleases)](https://github.com/Simodalstix/AWS-dr-backup-restore/releases)
 [![CDK](https://img.shields.io/badge/CDK-v2-orange.svg)](https://docs.aws.amazon.com/cdk/)
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
 
@@ -74,7 +74,7 @@ A **cost-effective disaster recovery solution** using AWS's Backup and Restore p
 
 ```bash
 # Clone and setup
-git clone https://github.com/simoda/AWS-dr-backup-restore.git
+git clone https://github.com/Simodalstix/AWS-dr-backup-restore.git
 cd AWS-dr-backup-restore/infra
 
 # Install dependencies

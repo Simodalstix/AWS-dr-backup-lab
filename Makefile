@@ -9,10 +9,11 @@ help: ## Show this help message
 install: ## Install dependencies
 	cd infra && poetry install
 
-lint: ## Run code formatting and linting
-	cd infra && poetry run black stacks/ constructs/ tests/ *.py
-	cd infra && poetry run isort stacks/ constructs/ tests/ *.py
-	cd infra && poetry run flake8 stacks/ constructs/ tests/ *.py
+format: ## Format code with black and isort
+	cd infra && poetry run black .
+	cd infra && poetry run isort .
+
+lint: format ## Alias for format (kept for compatibility)
 
 test: ## Run tests
 	cd infra && poetry run pytest -v

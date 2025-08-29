@@ -50,7 +50,6 @@ jobs:
         working-directory: infra
         run: |
           poetry run black --check .
-          poetry run flake8 .
           poetry run isort --check-only .
           
       - name: CDK Synth

@@ -7,10 +7,10 @@ Simplified CDK application for backup and restore disaster recovery
 import aws_cdk as cdk
 from aws_cdk import Environment
 
-from stacks.primary_network import PrimaryNetworkStack
-from stacks.primary_data import PrimaryDataStack
-from stacks.primary_app import PrimaryAppStack
 from stacks.backup_stack import BackupStack
+from stacks.primary_app import PrimaryAppStack
+from stacks.primary_data import PrimaryDataStack
+from stacks.primary_network import PrimaryNetworkStack
 
 
 def main():

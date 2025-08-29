@@ -1,33 +1,18 @@
-# AWS Disaster Recovery Lab - Backup and Restore Pattern
+# AWS Disaster Recovery - Backup and Restore Pattern
+
+[![Build Status](https://github.com/simoda/AWS-dr-backup-restore/workflows/CI/badge.svg)](https://github.com/simoda/AWS-dr-backup-restore/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Release](https://img.shields.io/github/v/release/simoda/AWS-dr-backup-restore?include_prereleases)](https://github.com/simoda/AWS-dr-backup-restore/releases)
+[![CDK](https://img.shields.io/badge/CDK-v2-orange.svg)](https://docs.aws.amazon.com/cdk/)
+[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
 
 ## Overview
 
-This project demonstrates a **modern, enterprise-ready disaster recovery solution** using AWS's recommended **Backup and Restore** pattern. This architecture provides cost-effective, automated disaster recovery while maintaining enterprise-grade reliability and following AWS Well-Architected principles.
+A **cost-effective disaster recovery solution** using AWS's Backup and Restore pattern. Delivers 85% cost savings vs warm standby while maintaining enterprise reliability.
 
-## Why Backup and Restore?
-
-### Architecture Decision
-
-We chose the **Backup and Restore** pattern because it delivers:
-
-- **Cost Optimization**: 85-90% cost savings compared to warm standby patterns
-- **Enterprise Reliability**: AWS-managed backup services with 99.999999999% (11 9's) durability
-- **Automation-First**: Fully automated backup, recovery, and infrastructure deployment
-- **Compliance Ready**: Built-in encryption, audit trails, and retention policies
-- **Scalable**: Handles workloads from startup to enterprise scale
-
-### Pattern Comparison
-
-| Pattern              | RTO       | RPO       | Monthly Cost | Use Case                         |
-| -------------------- | --------- | --------- | ------------ | -------------------------------- |
-| **Backup & Restore** | 2-4 hours | 1-4 hours | **$30-50**   | Cost-sensitive, planned recovery |
-| Pilot Light          | 30-60 min | 15-30 min | $150-300     | Balanced cost/recovery           |
-| Warm Standby         | 5-15 min  | 5-15 min  | $300-500     | Mission-critical, fast recovery  |
-| Multi-Site Active    | < 1 min   | Near-zero | $800+        | Zero-downtime requirements       |
+**Why This Matters**: Most companies overspend on DR. This pattern provides automated backup/recovery for $30-50/month instead of $300-500/month warm standby.
 
 ## Architecture
-
-### Core Components
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -60,201 +45,105 @@ We chose the **Backup and Restore** pattern because it delivers:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### AWS Services Used
-
-- **AWS Backup**: Centralized backup across services
-- **Amazon RDS**: PostgreSQL with automated backups
-- **Amazon S3**: Application data with cross-region replication
-- **AWS KMS**: Multi-region encryption keys
-- **Amazon ECS**: Containerized application platform
-- **Application Load Balancer**: High-availability load balancing
-- **AWS Lambda**: Serverless automation functions
-- **AWS Systems Manager**: Parameter and automation management
-- **Amazon CloudWatch**: Monitoring and alerting
-
 ## Key Features
 
-### 🔒 Enterprise Security
+- **Cost Optimized**: $30-50/month vs $300+ warm standby
+- **Automated**: Daily backups, cross-region replication, one-click recovery
+- **Secure**: KMS encryption, IAM least privilege, audit trails
+- **Reliable**: 4-hour RTO/RPO, 99.999999999% durability
 
-- **Encryption at Rest**: KMS-encrypted backups and data
-- **Encryption in Transit**: TLS 1.2+ for all communications
-- **IAM Least Privilege**: Role-based access controls
-- **Audit Logging**: CloudTrail integration for compliance
+## AWS Services
 
-### 🚀 Automation-First Design
-
-- **Scheduled Backups**: Daily automated backups with retention policies
-- **Cross-Region Replication**: Automatic backup copying to secondary region
-- **Infrastructure as Code**: Complete CDK-based deployment
-- **Recovery Automation**: One-click disaster recovery deployment
-
-### 💰 Cost Optimized
-
-- **Pay-per-Use**: No always-running secondary infrastructure
-- **Intelligent Tiering**: Automatic backup lifecycle management
-- **Resource Optimization**: Right-sized instances and storage
-- **Monitoring**: Cost tracking and optimization alerts
-
-### 📊 Observability
-
-- **Backup Monitoring**: Success/failure tracking and alerting
-- **Recovery Testing**: Automated backup validation
-- **Performance Metrics**: RTO/RPO measurement and reporting
-- **Health Dashboards**: Real-time system status
+- **AWS Backup**: Cross-region backup orchestration
+- **Amazon RDS**: PostgreSQL with point-in-time recovery
+- **Amazon S3**: Application data with replication
+- **AWS KMS**: Multi-region encryption
+- **Amazon ECS**: Containerized application
+- **AWS Lambda**: Recovery automation
+- **CloudFormation**: Infrastructure as Code
 
 ## Quick Start
 
 ### Prerequisites
 
-- AWS CLI configured with appropriate permissions
-- AWS CDK v2 installed (`npm install -g aws-cdk`)
-- Python 3.9+ with pip
+- AWS CLI configured
+- Node.js 20+ and AWS CDK v2 (`npm install -g aws-cdk`)
+- Python 3.9+ and Poetry (`curl -sSL https://install.python-poetry.org | python3 -`)
 
-### Deployment
+### Deploy
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd AWS-dr-backup-lab
+# Clone and setup
+git clone https://github.com/simoda/AWS-dr-backup-restore.git
+cd AWS-dr-backup-restore/infra
 
 # Install dependencies
-cd infra
-pip install -r requirements.txt
+poetry install
 
-# Configure your environment
+# Configure (edit cdk.json)
 export AWS_ACCOUNT=123456789012
 export AWS_REGION=ap-southeast-2
 
-# Deploy the infrastructure
-cdk bootstrap
-cdk deploy --all
-
-# Verify deployment
-aws backup list-backup-plans
-aws ecs list-clusters
+# Deploy
+poetry run cdk bootstrap
+poetry run cdk deploy --all
 ```
 
-### Configuration
-
-Edit [`cdk.json`](infra/cdk.json) to customize:
-
-```json
-{
-  "context": {
-    "config": {
-      "primary_region": "ap-southeast-2",
-      "secondary_region": "us-west-2",
-      "rto_target_hours": 4,
-      "rpo_target_hours": 4,
-      "alarm_email": "admin@yourcompany.com"
-    }
-  }
-}
-```
-
-## Disaster Recovery Process
-
-### Automated Recovery Workflow
-
-1. **Detection**: Manual trigger or automated failure detection
-2. **Parameter Retrieval**: Latest backup identifiers from Systems Manager
-3. **Infrastructure Deployment**: CloudFormation templates in secondary region
-4. **Data Restoration**: RDS point-in-time recovery, S3 data sync
-5. **Application Startup**: ECS service deployment with health checks
-6. **DNS Failover**: Route 53 health check-based failover
-
-### Recovery Commands
+### Test Recovery
 
 ```bash
-# Test recovery (dry-run)
+# Simulate disaster recovery
 aws lambda invoke \
   --function-name BackupStack-DeploymentFunction \
-  --payload '{"test_mode": true, "target_region": "us-west-2"}' \
-  response.json
-
-# Execute full recovery
-aws lambda invoke \
-  --function-name BackupStack-DeploymentFunction \
-  --payload '{"execute_recovery": true, "target_region": "us-west-2"}' \
-  response.json
-
-# Monitor recovery progress
-aws logs tail /aws/lambda/BackupStack-DeploymentFunction --follow
+  --payload '{"test_mode": true}' response.json
 ```
+
+## How It Works
+
+1. **Daily Backups**: AWS Backup creates encrypted snapshots
+2. **Cross-Region Copy**: Backups replicated to secondary region
+3. **Recovery**: Lambda deploys CloudFormation templates in DR region
+4. **Data Restore**: RDS point-in-time recovery + S3 sync
+5. **Health Checks**: Automated validation of recovered services
 
 ## Project Structure
 
 ```
 infra/
-├── app.py                     # Main CDK application
-├── constructs/                # Reusable CDK constructs
-│   ├── backup_plan.py         # AWS Backup integration
-│   ├── deployment_automation.py # Recovery automation
-│   ├── ecs_service_alb.py     # Application platform
-│   ├── kms_multi_region_key.py # Encryption keys
-│   ├── rds_with_replica.py    # Database with backups
-│   ├── recovery_parameters.py # Configuration management
-│   ├── s3_replication_pair.py # Data storage and sync
-│   └── template_storage.py    # CloudFormation templates
-├── stacks/                    # CDK stack definitions
-│   ├── backup_stack.py        # Backup and recovery stack
-│   ├── primary_app.py         # Application infrastructure
-│   ├── primary_data.py        # Data layer infrastructure
-│   └── primary_network.py     # Network infrastructure
-└── templates/                 # Recovery templates
-    ├── application-template.json
-    └── network-template.json
+├── app.py                     # Main CDK app
+├── stacks/                    # CDK stacks
+│   ├── primary_network.py     # VPC, subnets, security
+│   ├── primary_data.py        # RDS, S3, KMS
+│   ├── primary_app.py         # ECS, ALB
+│   └── backup_stack.py        # Backup automation
+├── constructs/                # Reusable components
+└── templates/                 # Recovery CloudFormation
 ```
 
-## Best Practices Implemented
+## Technical Details
 
-### AWS Well-Architected Framework
+- **RTO**: 4 hours (infrastructure deployment time)
+- **RPO**: 4 hours (backup frequency)
+- **Cost**: ~$40/month (vs $300+ warm standby)
+- **Encryption**: KMS multi-region keys
+- **Monitoring**: CloudWatch alarms + SNS notifications
 
-- **Operational Excellence**: Infrastructure as Code, automated deployments
-- **Security**: Encryption, least privilege, audit logging
-- **Reliability**: Multi-AZ deployment, automated backups, health checks
-- **Performance Efficiency**: Right-sized resources, monitoring
-- **Cost Optimization**: Pay-per-use model, lifecycle policies
+## Development
 
-### Disaster Recovery Best Practices
+See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed setup and workflow instructions.
 
-- **Regular Testing**: Automated backup validation and recovery drills
-- **Documentation**: Comprehensive runbooks and procedures
-- **Monitoring**: Proactive alerting and health checks
-- **Automation**: Minimize manual intervention during recovery
-
-## Monitoring and Alerting
-
-### Key Metrics
-
-- Backup success rate (target: 99.9%)
-- Recovery Time Objective (target: < 4 hours)
-- Recovery Point Objective (target: < 4 hours)
-- Cost per month (target: < $50)
-
-### Alerts
-
-- Backup job failures
-- Cross-region replication delays
-- Recovery automation errors
-- Cost threshold breaches
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes following AWS best practices
-4. Test thoroughly including disaster recovery scenarios
-5. Submit a pull request
+```bash
+# Quick start
+make setup
+make lint
+make test
+make synth
+```
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License - see [LICENSE](LICENSE) file.
 
-## Support
+## Contributing
 
-For questions or support:
-
-- Create an issue in this repository
-- Review AWS Backup documentation
-- Consult AWS Well-Architected Framework guides
+Pull requests welcome! Please test CDK synthesis before submitting.

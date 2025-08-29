@@ -1,38 +1,37 @@
 [tool.poetry]
 name = "aws-dr-backup-restore"
-version = "1.0.0"
-description = "AWS Disaster Recovery Lab - Backup and Restore Pattern"
-authors = ["Platform Team <platform@company.com>"]
+version = "0.1.0"
+description = "Cost-effective AWS disaster recovery using backup and restore pattern"
+authors = ["Your Name <your.email@example.com>"]
 readme = "../README.md"
+license = "MIT"
+repository = "https://github.com/simoda/AWS-dr-backup-restore"
+keywords = ["aws", "disaster-recovery", "backup", "cdk", "infrastructure"]
+package-mode = false
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: System :: Archiving :: Backup",
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"
 aws-cdk-lib = "^2.212.0"
 constructs = "^10.4.0"
-aws-cdk-aws-lambda-python-alpha = "^2.212.0a0"
 boto3 = "^1.40.0"
 python-dotenv = "^1.1.0"
-pyyaml = "^6.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.0"
-pytest-cov = "^6.2.0"
 black = "^25.1.0"
 flake8 = "^7.3.0"
-mypy = "^1.17.0"
 isort = "^6.0.0"
-
-[tool.poetry.group.docs.dependencies]
-sphinx = "^8.2.0"
-sphinx-rtd-theme = "^3.0.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.scripts]
-synth = "app:main"
-deploy = "scripts.deploy:main"
 
 [tool.black]
 line-length = 88
@@ -40,3 +39,7 @@ target-version = ['py39']
 
 [tool.isort]
 profile = "black"
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]

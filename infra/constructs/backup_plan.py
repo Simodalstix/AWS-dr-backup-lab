@@ -4,17 +4,19 @@ Simple AWS Backup integration with cross-region copying.
 """
 
 from typing import Optional
+
 from aws_cdk import (
-    aws_backup as backup,
-    aws_iam as iam,
-    aws_kms as kms,
-    aws_events as events,
-    aws_sns as sns,
-    Duration,
-    Stack,
     CfnOutput,
+    Duration,
     RemovalPolicy,
+    Stack,
 )
+from aws_cdk import aws_backup as backup
+from aws_cdk import aws_events as events
+from aws_cdk import aws_iam as iam
+from aws_cdk import aws_kms as kms
+from aws_cdk import aws_sns as sns
+
 from constructs import Construct
 
 

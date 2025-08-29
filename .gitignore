@@ -1,6 +1,3 @@
-# Project specific
-initial-prompt.md
-
 # Dependencies
 node_modules/
 .venv/
@@ -18,50 +15,34 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Security - Never commit secrets or credentials
+# Poetry
+poetry.lock
+
+# Environment variables
 .env
-.env.local
-.env.production
-.env.staging
-.env.development
+.env.*
+
+# Security - Never commit credentials
 *.pem
 *.key
-*.p12
-*.pfx
 secrets.json
 credentials.json
-config.json
-aws-credentials
 .aws/credentials
 .aws/config
 
-# IDE and editor files
-.vscode/settings.json
+# IDE
+.vscode/
 .idea/
 *.swp
-*.swo
 *~
 
-# OS generated files
+# OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
 # Logs
 *.log
 logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
-# Temporary files
-*.tmp
-*.temp
-.cache/
-
-# CDK specific
+# CDK
 cdk.context.json

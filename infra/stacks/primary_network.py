@@ -4,7 +4,10 @@ Creates the foundational network infrastructure in the primary region.
 """
 
 from typing import Dict, List, Optional
-from aws_cdk import Stack, aws_ec2 as ec2, CfnOutput, Tags
+
+from aws_cdk import CfnOutput, Stack, Tags
+from aws_cdk import aws_ec2 as ec2
+
 from constructs import Construct
 
 

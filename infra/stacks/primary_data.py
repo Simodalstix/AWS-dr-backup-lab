@@ -4,19 +4,20 @@ Creates the data infrastructure in the primary region.
 """
 
 from typing import Dict
+
 from aws_cdk import (
-    Stack,
-    aws_ec2 as ec2,
-    aws_rds as rds,
-    aws_s3 as s3,
-    aws_kms as kms,
-    aws_logs as logs,
-    Duration,
     CfnOutput,
+    Duration,
+    Stack,
     Tags,
 )
-from constructs import Construct
+from aws_cdk import aws_ec2 as ec2
+from aws_cdk import aws_kms as kms
+from aws_cdk import aws_logs as logs
+from aws_cdk import aws_rds as rds
+from aws_cdk import aws_s3 as s3
 
+from constructs import Construct
 from constructs.kms_multi_region_key import KMSMultiRegionKey
 from constructs.rds_with_replica import RDSWithReplica
 from constructs.s3_replication_pair import S3ReplicationPair

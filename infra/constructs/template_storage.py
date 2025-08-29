@@ -4,14 +4,16 @@ S3 bucket and deployment logic for CloudFormation templates.
 """
 
 from typing import Dict, List
+
 from aws_cdk import (
-    aws_s3 as s3,
-    aws_s3_deployment as s3deploy,
-    Duration,
-    Stack,
     CfnOutput,
+    Duration,
     RemovalPolicy,
+    Stack,
 )
+from aws_cdk import aws_s3 as s3
+from aws_cdk import aws_s3_deployment as s3deploy
+
 from constructs import Construct
 
 

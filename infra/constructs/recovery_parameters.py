@@ -4,11 +4,13 @@ SSM parameter management for recovery configuration.
 """
 
 from typing import Dict
+
 from aws_cdk import (
-    aws_ssm as ssm,
-    Stack,
     CfnOutput,
+    Stack,
 )
+from aws_cdk import aws_ssm as ssm
+
 from constructs import Construct
 
 

@@ -4,15 +4,17 @@ Centralized secrets management for the DR Lab application.
 """
 
 from typing import Dict, Optional
+
 from aws_cdk import (
-    aws_secretsmanager as secretsmanager,
-    aws_kms as kms,
-    aws_iam as iam,
-    Duration,
-    Stack,
     CfnOutput,
+    Duration,
     RemovalPolicy,
+    Stack,
 )
+from aws_cdk import aws_iam as iam
+from aws_cdk import aws_kms as kms
+from aws_cdk import aws_secretsmanager as secretsmanager
+
 from constructs import Construct
 
 

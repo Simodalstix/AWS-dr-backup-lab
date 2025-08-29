@@ -4,18 +4,20 @@ Creates RDS primary instance with cross-region read replica for standard Postgre
 """
 
 from typing import Dict, List, Optional
+
 from aws_cdk import (
-    aws_ec2 as ec2,
-    aws_rds as rds,
-    aws_iam as iam,
-    aws_kms as kms,
-    aws_secretsmanager as secretsmanager,
-    aws_logs as logs,
-    Duration,
-    Stack,
     CfnOutput,
+    Duration,
     RemovalPolicy,
+    Stack,
 )
+from aws_cdk import aws_ec2 as ec2
+from aws_cdk import aws_iam as iam
+from aws_cdk import aws_kms as kms
+from aws_cdk import aws_logs as logs
+from aws_cdk import aws_rds as rds
+from aws_cdk import aws_secretsmanager as secretsmanager
+
 from constructs import Construct
 
 
@@ -264,8 +266,10 @@ class RDSWithReplica(Construct):
         # Note: Cross-region read replicas need to be created in the target region
         # This is a placeholder for the replica configuration
         # In practice, this would be handled by a separate stack in the replica region
-        print(f"Warning: Read replica configuration stored but not created. "
-              f"Deploy a separate stack in {self._replica_region} to create the actual replica.")
+        print(
+            f"Warning: Read replica configuration stored but not created. "
+            f"Deploy a separate stack in {self._replica_region} to create the actual replica."
+        )
 
         self._replica_config = {
             "source_db_identifier": self._primary_instance.instance_identifier,

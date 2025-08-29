@@ -4,19 +4,20 @@ Creates the application infrastructure in the primary region.
 """
 
 from typing import Dict
+
 from aws_cdk import (
-    Stack,
-    aws_ec2 as ec2,
-    aws_ecs as ecs,
-    aws_s3 as s3,
-    aws_secretsmanager as secretsmanager,
-    aws_logs as logs,
-    Duration,
     CfnOutput,
+    Duration,
+    Stack,
     Tags,
 )
-from constructs import Construct
+from aws_cdk import aws_ec2 as ec2
+from aws_cdk import aws_ecs as ecs
+from aws_cdk import aws_logs as logs
+from aws_cdk import aws_s3 as s3
+from aws_cdk import aws_secretsmanager as secretsmanager
 
+from constructs import Construct
 from constructs.ecs_service_alb import ECSServiceALB
 from constructs.rds_with_replica import RDSWithReplica
 

@@ -4,14 +4,16 @@ Lambda functions for automated CloudFormation stack deployment.
 """
 
 from typing import Dict
+
 from aws_cdk import (
-    aws_lambda as _lambda,
-    aws_iam as iam,
-    aws_s3 as s3,
+    CfnOutput,
     Duration,
     Stack,
-    CfnOutput,
 )
+from aws_cdk import aws_iam as iam
+from aws_cdk import aws_lambda as _lambda
+from aws_cdk import aws_s3 as s3
+
 from constructs import Construct
 
 

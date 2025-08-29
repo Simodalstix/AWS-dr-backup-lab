@@ -4,15 +4,17 @@ Creates S3 buckets with cross-region replication configuration.
 """
 
 from typing import Dict, List, Optional
+
 from aws_cdk import (
-    aws_s3 as s3,
-    aws_iam as iam,
-    aws_kms as kms,
-    Stack,
     CfnOutput,
-    RemovalPolicy,
     Duration,
+    RemovalPolicy,
+    Stack,
 )
+from aws_cdk import aws_iam as iam
+from aws_cdk import aws_kms as kms
+from aws_cdk import aws_s3 as s3
+
 from constructs import Construct
 
 

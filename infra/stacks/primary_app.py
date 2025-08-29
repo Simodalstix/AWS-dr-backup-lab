@@ -73,7 +73,7 @@ class PrimaryAppStack(Stack):
             vpc=self._vpc,
             cluster_name=f"dr-lab-primary-{self.region}",
             enable_fargate_capacity_providers=True,
-            container_insights=True,
+            container_insights_v2=ecs.ContainerInsights.ENABLED,
         )
 
         # Capacity providers are automatically enabled with enable_fargate_capacity_providers=True

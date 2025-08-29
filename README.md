@@ -81,7 +81,7 @@ cd AWS-dr-backup-restore/infra
 poetry install
 
 # Configure (edit cdk.json)
-export AWS_ACCOUNT=123456789012
+export AWS_ACCOUNT=820242933814
 export AWS_REGION=ap-southeast-2
 
 # Deploy

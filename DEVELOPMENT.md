@@ -42,7 +42,7 @@ Edit `infra/cdk.json` to customize:
 
 Create `.env` file in project root:
 ```bash
-AWS_ACCOUNT=123456789012
+AWS_ACCOUNT=820242933814
 AWS_REGION=ap-southeast-2
 ALARM_EMAIL=your-email@example.com
 ```

@@ -43,7 +43,7 @@ def main():
     config = {**default_config, **config}
 
     # Account and regions
-    account = app.account or "123456789012"
+    account = app.account or "820242933814"
     primary_region = config["primary_region"]
 
     # Environment definition (only primary region needed)
